@@ -25,4 +25,8 @@ vignettes/*.pdf
 # Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
 rsconnect/
 
+#msproducts
+.ppt
+cleaned
+surveycollation.Rproj
 *.xls
