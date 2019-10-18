@@ -30,3 +30,4 @@ rsconnect/
 cleaned
 surveycollation.Rproj
 *.xls
+.Rproj.user
