@@ -2,7 +2,7 @@
 
 #' # Compiling statewide PI data for MACRONICHE project
 #' ### Author: Mike Verhoeven
-#' ### Date: 11 Oct 2019
+#' ### Date: 22 Oct 2019
 
 #' # Preamble
 #' Load libraries
@@ -10,7 +10,9 @@
   library(knitr)
   library(ezknitr)
   library(bit64)
-
+  library(data.table)
+  library(tidyr)
+  library(stringr)
 
 
 
@@ -23,13 +25,22 @@
 #' and Radomski) were acquired through a formal data request (which only turned
 #' up data collected before 2013).
 
+
+# shallow lakes -----------------------------------------------------------
+
+
   # shallow lakes data
   
-  library(data.table)
+  sldat <- fread(file = "data/contributor_data/macroniche_adds/muthukrishnan/Lake_plant_diversity_data.csv") # use data.table to pull in dataset
   
-  sldat <- fread(file = "data/contributor_data/macroniche_adds/muthukrishnan/Lake_plant_diversity_data.csv")
+  names(sldat) #view the names within the sldats datatable
+
+#' So we can see that the shallow lakes data are in a long form, with each
+#' record representing a plant occurrence, and sites with no plant occurrences
+#' having a single record with a *no vegetation present* for the species name.
+#' Occurrences with unsurveyed points are marked *no* in the
+#' *sample_point_surveyed* field. 
   
-  names(sldat)
   #how many points per survey
   sldat[ , .N , .(lake_name, lake_id, survey_date)]
   
@@ -37,6 +48,29 @@
   sldat[ veg_code == "ZIP", .N , .(lake_name, lake_id, survey_date)]
   sldat[ veg_code == "ZIP", .N , .(lake_name, lake_id)]
   sldat[ veg_code == "ZIP", .N , ]
+
+  
+#'can we cruise these for bad DOWIDs?
+  # badIDs <- fread(file = "data/input/Bad DOWIDs.csv", fill = T)
+  # 
+  # idents <- sldat [ , .(unique(lake_name)),]
+  # 
+  # match(badIDs$lake_name,idents$V1) #so we can see that every line has a good match
+  # rm(badIDs)
+  # rm(idents)
+
+#' All of these bad idents came from the shallow lakes dataset, but there are no
+#' spatial data in the shallow lakes data... So there's really no way to resolve
+#' by pulling those data. We'll have to try to link up to the NWI dataset to
+#' get locs on these lakes.  
+#' 
+#' 
+
+# fisheries div -----------------------------------------------------------
+
+
+#' Now we want to pull in the next dataset. These are PIs from the Fisheries
+#' division. 
   
   # fisheries data
   
@@ -46,18 +80,73 @@
   #' Now we need to reshape this behemoth...
   names(fshdat)
   #drop species count cols
-  fshdat[ ,c(340:347):= NULL , ]
+  fshdat[ ,c(265, 340:347):= NULL , ]
   
+  #find an indicator col for sample taken
+  fshdat[, summary(as.factor(HAS_DATA)), ] #according to the metadata record, this will not help us X, Y, Z all 
+  fshdat[ , summary(DEPTH_FT), ]
+  fshdat[ , 32:338 , ][ ,sum() , ]
+  fshdat[ , vegfound := rowSums(.SD), .SDcols = 32:338]
+  fshdat[, vegfound, ]
+  fshdat[ vegfound == 0 , novegfound := 1, ]
+  fshdat[is.na(novegfound) == T , novegfound := 0, ]
+  fshdat[, vegfound := NULL, ]
+
   # retain the point ID chars and the depth, then make data long (new row for every observation of a species)
   fshdat_1 = melt(fshdat, id.vars = c(1:31),
-               variable.name = "taxon", value.name = "pres")
-  fshdat_1
+               variable.name = "taxon", value.name = "pres" )
+  
+  # #rows with Zizania palu:
+  # fshdat_1[ taxon == "E_ZIP" & pres == "1", .N, ]
+  # fshdat_1[ taxon == "E_ZIP" & pres == "1",, ]
+  # fshdat_1[ taxon == "E_ZIP" & pres == "1",.N,.(LAKE_NAME, DOWLKNUM, SURVEYDATE) ]
+  # fshdat_1[ taxon == "E_ZIP" & pres == "1",.N,.(LAKE_NAME, DOWLKNUM) ]  
+  
+#' Alright. Now we have the Fisheries data in a long form. We now want to 
+#' remove the species with a null occurrence, and somehow retain a line for even
+#' those points which have a sample with nothing found or with no sample taken.
+#' We can do this by saying remove rows with zeroes for presence. Because we
+#' have added the no veg found as a taxon, this will retain a line with no 
+#' vegfound ofr each case where a sample was taken and no plants recovered on
+#' rake. One tricky and seemingly impossible thing that we see in these data is 
+#' that it appears as though **every** sample point was actually sampled--we can
+#' almost certainly assume this is not the case.
+#' 
+#' 
+ 
+  # find out what landed in taxon & pres cols
+  fshdat_1[ , summary(taxon) , ]
+  fshdat_1[ , summary(pres) , ]
+  
+  #drop all of the zeros (not observed) in this plant 
+  fshdat_2 <- fshdat_1[pres > 0,] # retain only rows with pres > 0
+  str(fshdat_2)
+  
+  #now convert these codes to taxonomic names
+  fshdat_2[ , sort(unique(taxon)), ]
+  
+  fshdat_2[ , taxon := word(taxon, start = -1, sep = fixed("_")), ]
+  
+  fish_codes <- fread(file = "data/contributor_data/macroniche_adds/dustin/fisheries_codes_MRV.csv")
+  
+  #these fish data have a field for no species found
+  a <- data.table(SCIENTIFIC_NAME = "No Veg Found", PLANT_SPECIES_ABBREV = "novegfound")
+  fish_codes <- rbind(fish_codes[, 3:4],a)
+  
+  match(fshdat_2$taxon, fish_codes$PLANT_SPECIES_ABBREV)
+  
+  fshdat_2[ , taxonfull := fish_codes$SCIENTIFIC_NAME[match(fshdat_2$taxon, fish_codes$PLANT_SPECIES_ABBREV)] , ]
+  
+  fshdat_2[ , sort(unique(taxonfull)), ]
+  
+  
 
-  #rows with Zizania palu:
-  fshdat_1[ taxon == "E_ZIP" & pres == "1", .N, ]
-  fshdat_1[ taxon == "E_ZIP" & pres == "1",, ]
-  fshdat_1[ taxon == "E_ZIP" & pres == "1",.N,.(LAKE_NAME, DOWLKNUM, SURVEYDATE) ]
-  fshdat_1[ taxon == "E_ZIP" & pres == "1",.N,.(LAKE_NAME, DOWLKNUM) ]  
+  #remove previous versions datafiles from workspace
+  rm(fshdat, fshdat_1,fish_codes,a)
+
+
+# lakes and rivers --------------------------------------------------------
+
   
   # lnr data
   
@@ -69,17 +158,134 @@
   
   summary <- lnrdat[ , .N , .(LAKE_NAME, SURVEY_DATE, DOWLKNUM)]
   
-  
-  write.csv(summary, file = "lnrsurveysummary.csv")  
+  # write.csv(summary, file = "lnrsurveysummary.csv")  
   
   lnrdat[ , .N , .(LAKE_NAME, SURVEY_DATE, DOWLKNUM)]
+
+  int <- data.table(sp = rep("sp", 15), num = 1:15)
   
-  unique(lnrdat[ , splittaxa:= strsplit(lnrdat$OBSERVED_TAXA, ","), ])
+  int[ , spnum := paste(sp,num, sep = "")]
+  
+  lnrdat_1 <- separate(lnrdat, OBSERVED_TAXA, into = c(int$spnum) )
+  
+  names(lnrdat_1)
+  
+  lnrdat_1[ , OBSERVED_TAXA_REL_ABUND := NULL]# drop unneeded col
+  
+  
+  lnrdat_1[sp1 == "" , summary(as.factor(VEG_REL_ABUNDANCE_DESCR)) , ]# deal with locs where no veg was found.
+  
+  lnrdat_2 <-  melt(lnrdat_1, id.vars = c(1:16, 32:34))
+  
+#' We'll want to simplify these and drop unsampled sites from the data, also
+#' reevaluate what to do with the "sampled subjective sites" and "shoreline 
+#' surveys." For now, I have dropped all of these
+  lnrdat_2[ , SAMPLE_TYPE_DESCR := as.factor(SAMPLE_TYPE_DESCR), ]
+  lnrdat_2[, summary(SAMPLE_TYPE_DESCR) , ]
+  
+  lnrdat_3 <- lnrdat_2[SAMPLE_TYPE_DESCR == "sampled" | SAMPLE_TYPE_DESCR == "sampled - shoreline plot", , ] 
+  
+  lnrdat_3[ , SAMPLE_NOTES := as.factor(SAMPLE_NOTES), ] 
+  lnrdat_3[ SAMPLE_NOTES != "", SAMPLE_NOTES, ] 
+  
+  lnrdat_3[ , VEG_REL_ABUNDANCE_DESCR := as.factor(VEG_REL_ABUNDANCE_DESCR),  ]
+  lnrdat_3[ , summary(VEG_REL_ABUNDANCE_DESCR),]
 
+#' We need to delete all of the na's that come from expanding our data, but we
+#' don't want to lose a line of data for points where no veg was found. Luckily 
+#' we have a "" (blank) for spoecies one from our melt function. So, every row 
+#' with value ==NA can get hucked out.     
+  
+  lnrdat_3[VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected', ,]#locs not labeled as veg not det
+  
+  lnrdat_4 <- lnrdat_3[is.na(value) == F]
+  
+  
+  # lookup scientific names
+  lnrdat_4[ , variable := NULL , ]
+  lnrdat_4[ , TAXA_NUMBER := NULL , ]
+  
+  lnrdat_4[ , sort(unique(value)), ]
+  
+  lnrtaxa <- fread(file = "data/contributor_data/macroniche_adds/perleberg/taxalist.csv")
+  #mndnr exported all rare species as "X" so we'll need to add this to the taxalist
+  lnrtaxa <- rbind(lnrtaxa,data.table(SCIENTIFIC_NAME = "Rare Species", TAXA_CODE = "X"))
+  
+  match(lnrdat_4$value, lnrtaxa$TAXA_CODE)
+  
+  lnrdat_4[ , taxon := lnrtaxa$SCIENTIFIC_NAME[match(lnrdat_4$value, lnrtaxa$TAXA_CODE)] , ]
+  
+  lnrdat_4[ , sort(unique(taxon)), ]
+  
+  lnrdat_4[ VEG_REL_ABUNDANCE_DESCR == "vegetation not detected" , summary(as.factor(value)), ]
+  
+  #remove datafiles from substeps
+  rm(lnrdat_1, lnrdat_2, lnrdat_3, lnrdat, lnrtaxa, int, summary)
+  
+# combine datasets  -------------------------------------------------------
 
- 
- 
- # footer ------------------------------------------------------------------
+  summary(fshdat_2)
+  names(fshdat_2)
+  #drop unused columns
+  fshdat_2[ , c("OBJECTID","SORT_NAME", "SC_ID", "SS_ID", "FW_ID", "DNR_OFFICE", "STA_CODE", "STA_ID0", "TARGET_LOC", "ACTUAL_LOC", "UTM_SOURCE", "DATA_SOURCE", "SURVEY_STATUS", "PROJECT", "SAMPLETYPE", "LOC_TYPE", "pres","SLICE_lake","UTM_DATUM", "UTM_ZONE", "YEAR") := NULL , ]
+  
+  summary(lnrdat_4)
+  names(lnrdat_4)
+  #drop unused columns
+  lnrdat_4[ , c("Project::STATUS","GPScoords::POINT_SPACING_M", "GPScoords::SURVEY_ID") := NULL , ]
+  
+  summary(sldat)
+  names(sldat)
+  #drop unused columns
+  sldat[ , c("record_num","County_code", "county", "Lake_acres", "survey_year","vegetation_common_name") := NULL , ]
+  
+
+# match colum names -------------------------------------------------------
+
+  
+  cbind(names(fshdat_2),names(lnrdat_4), names(sldat))
+
+  setcolorder()
+  setcolorder(lnrdat_4, c(2,3,4,14,15,1,5,10,7,8,6,17))
+  setcolorder(sldat, c(1,2,5,3,4,7,9,6,10,11))
+  
+  
+  
+  # matchnames
+  names(sldat)[1] <- "DOWLKNUM"
+  names(sldat)[2] <- "LAKE_NAME"
+  names(sldat)[3] <- "SURVEY_ID"
+  names(sldat)[4] <- "SURVEY_DATE"
+  names(fshdat_2)[10] <- "SURVEY_DATE"
+  
+  setcolorder(lnrdat_4, c(2,3,4,14,15,1,5,10,7,8,6,17))
+  setcolorder(sldat, c(1,2,5,3,4,7,9,6,10,11))
+  
+  names(sldat)[3] <- "STA_NBR"
+  names(sldat)[6] <- "DEPTH_FT"
+  names(lnrdat_4)[9] <- "DEPTH_FT"
+  names(lnrdat_4)[8] <- "SURVEYOR"
+  
+  lnrdat_4[, SURVEYOR:= paste(SURVEYOR,SURVEYOR_B,SURVEYOR_C, sep = ";") , ]
+  lnrdat_4[ , c("SURVEYOR_B","SURVEYOR_C") := NULL,]
+
+  names(sldat)[7] <- "SUBSTRATE"
+  names(sldat)[9] <- "VEGCODE"
+  names(fshdat_2)[12] <- "VEGCODE"
+  names(lnrdat_4)[12] <- "VEGCODE"
+  names(sldat)[10] <- "TAXON"
+  names(fshdat_2)[13] <- "TAXON"
+  names(lnrdat_4)[13] <- "TAXON"
+  
+  setcolorder(fshdat_2, c(1:3, 6:7, 6:13))
+  setcolorder(lnrdat_4, c(1:3, 6:13, 4:5 ))
+  
+  setcolorder(fshdat_2, c(1:5,7:11))
+  setcolorder(lnrdat_4, c(1:5, 7:11, 4:5 ))
+  
+  
+  
+  # footer ------------------------------------------------------------------
  
  
  #' ## Document footer 
