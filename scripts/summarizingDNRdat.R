@@ -222,7 +222,7 @@
   #remove datafiles from substeps
   rm(lnrdat_1, lnrdat_2, lnrdat_3, lnrdat, lnrtaxa, int, summary)
   
-# combine datasets  -------------------------------------------------------
+# drop unused or re-creatable columns  -------------------------------------------------------
 
   summary(fshdat_2)
   names(fshdat_2)
@@ -240,15 +240,15 @@
   sldat[ , c("record_num","County_code", "county", "Lake_acres", "survey_year","vegetation_common_name") := NULL , ]
   
 
-# match colum names -------------------------------------------------------
+# clean column names -------------------------------------------------------
 
-  
   cbind(names(fshdat_2),names(lnrdat_4), names(sldat))
 
-  setcolorder()
-  setcolorder(lnrdat_4, c(2,3,4,14,15,1,5,10,7,8,6,17))
-  setcolorder(sldat, c(1,2,5,3,4,7,9,6,10,11))
+  setcolorder(sldat,  c(  1,2,3,4,5,7,9, 11, 6,10,8))
+  setcolorder(fshdat_2,c(1,2,6,7,3,9,10,13,11,12, 4, 5,8))
+  setcolorder(lnrdat_4, c(2,3,1,5,4,7,8, 17, 9, 16,14,15,10,11,12,13))
   
+  cbind(names(fshdat_2),names(lnrdat_4), names(sldat))  
   
   
   # matchnames
@@ -256,35 +256,216 @@
   names(sldat)[2] <- "LAKE_NAME"
   names(sldat)[3] <- "SURVEY_ID"
   names(sldat)[4] <- "SURVEY_DATE"
-  names(fshdat_2)[10] <- "SURVEY_DATE"
-  
-  setcolorder(lnrdat_4, c(2,3,4,14,15,1,5,10,7,8,6,17))
-  setcolorder(sldat, c(1,2,5,3,4,7,9,6,10,11))
-  
-  names(sldat)[3] <- "STA_NBR"
+  names(fshdat_2)[4] <- "SURVEY_DATE"
+  names(sldat)[5] <- "STA_NBR"
   names(sldat)[6] <- "DEPTH_FT"
-  names(lnrdat_4)[9] <- "DEPTH_FT"
-  names(lnrdat_4)[8] <- "SURVEYOR"
+  names(lnrdat_4)[6] <- "DEPTH_FT"
+  names(sldat)[7] <- "SUBSTRATE"
+  names(sldat)[10] <- "TAXACODE"
+  names(fshdat_2)[10] <- "TAXACODE"
+  names(lnrdat_4)[10] <- "TAXACODE"
+  names(sldat)[8] <- "TAXON"
+  names(fshdat_2)[8] <- "TAXON"
+  names(lnrdat_4)[8] <- "TAXON"
   
+  names(lnrdat_4)[13] <- "SURVEYOR"
   lnrdat_4[, SURVEYOR:= paste(SURVEYOR,SURVEYOR_B,SURVEYOR_C, sep = ";") , ]
   lnrdat_4[ , c("SURVEYOR_B","SURVEYOR_C") := NULL,]
 
-  names(sldat)[7] <- "SUBSTRATE"
-  names(sldat)[9] <- "VEGCODE"
-  names(fshdat_2)[12] <- "VEGCODE"
-  names(lnrdat_4)[12] <- "VEGCODE"
-  names(sldat)[10] <- "TAXON"
-  names(fshdat_2)[13] <- "TAXON"
-  names(lnrdat_4)[13] <- "TAXON"
+  cbind(names(fshdat_2),names(lnrdat_4), names(sldat))  
   
-  setcolorder(fshdat_2, c(1:3, 6:7, 6:13))
-  setcolorder(lnrdat_4, c(1:3, 6:13, 4:5 ))
+  names(lnrdat_4)[11] <- "UTMX"
+  names(lnrdat_4)[12] <- "UTMY"
   
-  setcolorder(fshdat_2, c(1:5,7:11))
-  setcolorder(lnrdat_4, c(1:5, 7:11, 4:5 ))
+  cbind(names(fshdat_2),names(lnrdat_4), names(sldat))  
   
   
+  str(sldat)
+  str(lnrdat_4)
   
+  lnrdat_4[ , DOWLKNUM :=  as.character(DOWLKNUM), ]
+  sldat[ , SURVEY_ID :=  as.character(SURVEY_ID), ]
+  lnrdat_4[ , VEG_REL_ABUNDANCE_DESCR :=  as.character(VEG_REL_ABUNDANCE_DESCR), ]
+  
+  str(lnrdat_4)
+  str(fshdat_2)
+  
+  fshdat_2[ , DOWLKNUM :=  as.character(DOWLKNUM), ]
+  fshdat_2[ , SURVEY_ID :=  as.character(SURVEY_ID), ]
+  
+  #are all data types aligned
+  str(sldat)
+  str(lnrdat_4)
+  str(fshdat_2)
+  
+  sldat[ , DATASOURCE := "Muthukrishnan Et al", ]
+  lnrdat_4[ , DATASOURCE := "DNR Lakes and Rivers", ]
+  fshdat_2[ , DATASOURCE := "DNR Fisheries", ]
+  
+    
+# merge datasets ----------------------------------------------------------
+
+  dnrdat <- merge(lnrdat_4,fshdat_2, all = T )
+    str(dnrdat)
+    str(sldat)
+    dnrdat <- merge(dnrdat,sldat, by = c("DOWLKNUM", "LAKE_NAME", "SURVEY_ID", 
+                                         "SURVEY_DATE", "STA_NBR", "DEPTH_FT", 
+                                         "SUBSTRATE", "TAXON", "TAXACODE", "DATASOURCE"),  all = T)
+
+# align the no veg found notes ------------------------------------------
+
+  names(dnrdat)
+    str(dnrdat)
+    
+    dnrdat[ , "TAXON" := as.factor(TAXON), ]
+    dnrdat[ , .N , TAXON ]
+    dnrdat[ TAXON == "" , .N , ]
+    dnrdat[  , sort(summary(TAXON)) , ]
+    
+    dnrdat[ , summary(as.factor(VEG_REL_ABUNDANCE_DESCR)),] #from lnr
+    dnrdat[ , summary(as.factor(SAMPLE_TYPE_DESCR)),] #from lnr retain in case we want to drop the "shoreline plots" (n = 692)
+    dnrdat[ , summary(as.factor(HAS_DATA)),] #from fsh ( X, Y == sampled found veg; Z = sampled, no veg found)
+    dnrdat[ , summary(as.factor(sample_point_surveyed)),] #from sl
+    
+    #drop points where no sample was taken:
+    dnrdat <- subset(dnrdat, is.na(sample_point_surveyed) == T |
+                       sample_point_surveyed == "yes" , )
+    dnrdat[ , sample_point_surveyed := NULL, ]
+    
+#' These are observations of plants that are conflicting with other fields. We 
+#' will assign all of these points a TAXON of no veg found.
+    dnrdat[ TAXON == "No Veg Found"|
+              TAXON == "No Vegetation Present"|
+              TAXON == ""|
+              HAS_DATA == "Z" |
+              VEG_REL_ABUNDANCE_DESCR == "vegetation not detected",summary(TAXON),]
+    # assign taxon as No Veg Found
+    dnrdat[ TAXON == "No Veg Found"|
+              TAXON == "No Vegetation Present"|
+              TAXON == ""|
+              HAS_DATA == "Z" |
+              VEG_REL_ABUNDANCE_DESCR == "vegetation not detected",
+            TAXON := "No Veg Found",]
+    #drop HAS_DATA and VEG_REL_ABUNDANCE_DESCR
+    dnrdat[ , c("HAS_DATA","VEG_REL_ABUNDANCE_DESCR") := NULL, ]
+    
+    dnrdat[ TAXON == "No Veg Found",summary(TAXON) ,]
+    dnrdat[ ,summary(TAXON) ,]
+    dnrdat[ is.na(TAXON), ,]
+    dnrdat[SURVEY_ID == "18009000_2009_1" & STA_NBR == 205, TAXON := "Calamagrostis" , ] # CALAMA code checked from LnR submitted taxalist
+    
+# resolve date data -------------------------------------------------------
+  
+    dnrdat[ DATASOURCE == "Muthukrishnan Et al", SURVEY_DATE ,]
+    dnrdat[ DATASOURCE == "DNR Lakes and Rivers", SURVEY_DATE ,]
+    dnrdat[ DATASOURCE == "DNR Fisheries", SURVEY_DATE ,]
+    
+#'we will caress these all into a yyyy-mm-dd, ex: 1992-01-31    
+    
+    dnrdat[ DATASOURCE == "Muthukrishnan Et al", SURVEY_DATE := as.character(as.Date(SURVEY_DATE, format = "%d-%b-%y")) ,]
+    dnrdat[ DATASOURCE == "DNR Lakes and Rivers", SURVEY_DATE := as.character(as.Date(SURVEY_DATE, format = "%m/%d/%Y")) ,]
+    dnrdat[ DATASOURCE == "DNR Fisheries", SURVEY_DATE := as.character(as.Date(word(SURVEY_DATE, 1, sep = " "), format = "%m/%d/%Y")),]
+    
+    dnrdat[ , .N , SURVEY_DATE]
+    dnrdat[ , summary(as.Date(SURVEY_DATE)),]
+    summary(dnrdat[ ,  as.POSIXlt(SURVEY_DATE, format = "%Y-%m-%d")[, "yday"],])
+    hist(dnrdat[ ,  as.POSIXlt(SURVEY_DATE, format = "%Y-%m-%d")[, "yday"],])
+    
+
+# resolve substrates ------------------------------------------------------
+    
+    dnrdat[ , str(SUBSTRATE) ,]
+    dnrdat[ , SUBSTRATE := as.factor(tolower(SUBSTRATE)) ,]
+    levels(dnrdat$SUBSTRATE)
+    dnrdat[ , summary(SUBSTRATE) ,]
+    
+#' We'll leave this alone for now until we decide it is useful or needed data.
+
+# resolve depth data ------------------------------------------------------
+
+    dnrdat[ , summary(DEPTH_FT), ]
+    dnrdat[ DEPTH_FT > 99 , , ]
+    dnrdat[ is.na(DEPTH_FT), , ]
+#' SOme of these points are good, some appear to be incorrect data entries.
+#' We'll leave them be for no, with the assumption that we will only use
+#' complete entries in our analysis. 
+
+
+# resolve taxa names ------------------------------------------------------
+
+    dnrdat[ , sort(unique(TAXON)),]
+    dnrdat[ TAXON == "Bidens species"|
+             TAXON == "Biden sp.", TAXON := "Bidens spp.",]
+    dnrdat[ TAXON == "Carex"|
+              TAXON == "Carex sp.", TAXON := "Carex spp.",]
+    dnrdat[ TAXON == "Chara"|
+              TAXON == "Chara sp.", TAXON := "Chara spp.",]
+    dnrdat <- subset(dnrdat, TAXON != "Dreissena polymorpha")
+    dnrdat[ TAXON == "Drepanocladus; Fontinalis; etc", TAXON := "Drepanocladus or Fontinalis spp.",]
+    dnrdat[ TAXON == "Elatine sp", TAXON := "Elatine spp.",]
+    dnrdat[ TAXON == "Eleocharis" | TAXON == "Eleocharis sp.", TAXON := "Eleocharis spp.",]
+    dnrdat[ TAXON == "Elodea sp." , TAXON := "Elodea spp.",]
+    dnrdat[ TAXON == "Equisetum sp.", TAXON := "Equisetum spp.",]
+    dnrdat[ TAXON == "Impatiens sp.", TAXON := "Impatiens spp.",]
+    dnrdat[ TAXON == "Iris sp." | TAXON == "Iris species" | TAXON == "Iris", TAXON := "Iris spp.",]
+    dnrdat[ TAXON == "Isoetes sp." | TAXON == "Isoetes", TAXON := "Isoetes spp.",]
+    dnrdat[ TAXON == "Juncus sp." , TAXON := "Juncus spp.",]
+    dnrdat[ TAXON == "Labiatae Family" , TAXON := "Labiatae spp.",]
+    dnrdat[ TAXON == "Lemna sp." | TAXON == "Lemna", TAXON := "Lemna spp.",]
+    dnrdat[ TAXON == "Myriophyllum sp." | TAXON == "Myriophyllum species"| TAXON == "Myriophyllum", TAXON := "Myriophyllum spp.",]
+    dnrdat[ TAXON == "Myriophyllum verticullatum" , TAXON := "Myriophyllum verticillatum",]
+    dnrdat[ TAXON == "Najas sp." | TAXON == "Najas species"| TAXON == "Najas", TAXON := "Najas spp.",]
+    dnrdat[ TAXON == "Nitella sp." | TAXON == "Nitella", TAXON := "Najas spp.",]
+    dnrdat[ TAXON == "Nuphar sp." | TAXON == "Nuphar species", TAXON := "Nuphar spp.",]
+    dnrdat[ TAXON == "Nymphaea sp.", TAXON := "Nymphaea spp.",]
+    dnrdat[ TAXON == "Persicaria species - floating-leaf type" | 
+              TAXON == "Persicaria species" | 
+              TAXON == "Persicaria sp.", TAXON := "Persicaria spp.",]
+    dnrdat[ TAXON == "Potamogeton Friesii"  , TAXON := "Potamogeton friesii",]
+    dnrdat[ TAXON == "Potamogeton Richardsonii"  , TAXON := "Potamogeton richardsonii",]
+    dnrdat[ TAXON == "Potamogeton Robbinsii"  , TAXON := "Potamogeton robbinsii",]
+    dnrdat[ TAXON == "Potamogeton sp." |
+              TAXON == "Potamogeton", TAXON := "Potamogeton spp.",]
+    dnrdat[ TAXON == "Potamogeton species - broadleaf type"  , TAXON := "Potamogeton sp. Broad",]
+    dnrdat[ TAXON == "Potamogeton species - narrowleaf type"  , TAXON := "Potamogeton sp. Narrow",]
+    dnrdat[ TAXON == "Ranunculus" | TAXON == "Ranunculus sp."  , TAXON := "Ranunculus spp.",]
+    dnrdat[ TAXON == "Sagittaria" | TAXON == "Sagittaria species" | TAXON == "Sagittaria sp."  , TAXON := "Sagittaria spp.",]
+    dnrdat[ TAXON == "Salix sp." | TAXON == "Salix species"  , TAXON := "Salix spp.",]
+    dnrdat[ TAXON == "Schoenoplectus" | TAXON == "Schoenoplectus species"  , TAXON := "Schoenoplectus spp.",]
+    dnrdat[ TAXON == "Solidago sp." , TAXON := "Solidago spp.",]
+    dnrdat[ TAXON == "Sparganinm sp." | TAXON == "Sparganium" |
+              TAXON == "Sparganium sp." | TAXON == "Sparganium species"  , TAXON := "Sparganium spp.",]
+    dnrdat[ TAXON == "Stuckenia (Potamogeton) vaginata" , TAXON := "Stuckenia vaginata",]
+    dnrdat[ TAXON == "Stuckenia species" , TAXON := "Stuckenia spp.",]
+    dnrdat[ TAXON == "Typha" | TAXON == "Typha species" | TAXON == "Typha sp.", TAXON := "Typha spp.",]
+    dnrdat[ TAXON == "Utricularia sp." | TAXON == "Utricularia species" , TAXON := "Utricularia spp.",]
+    dnrdat[ TAXON == "Wolffia sp." | TAXON == "Wolffia" , TAXON := "Wolffia spp.",]
+    dnrdat[ TAXON == "Zanichellia palustris" , TAXON := "Zannichellia palustris",]
+    dnrdat[ TAXON == "Unknown emergent" , TAXON := "Unknown emergent species",] 
+    
+    dnrdat [ , TAXON := droplevels(TAXON),]
+    dnrdat[ , sort(unique(TAXON)),]
+    dnrdat[ , .N, TAXON]
+
+# review dataset and export -----------------------------------------------
+
+    str(dnrdat)
+    dnrdat [ , SUBSTRATE := droplevels(SUBSTRATE),]
+    dnrdat [ , TAXON := droplevels(TAXON),]
+    dnrdat [ , SAMPLE_TYPE_DESCR := droplevels(SAMPLE_TYPE_DESCR),]
+    str(dnrdat)
+    
+    dnrdat[]
+    
+    occurrences <- dnrdat[ , .N , TAXON]
+    surveyn <- dnrdat[ , .N , SURVEY_ID]
+    datasourcensurveys <- dnrdat[ , length(unique(SURVEY_ID)) , DATASOURCE ]
+    
+    
+    
+    
+    write.csv(dnrdat, file = "data/output/DNR_PI_Data_Combined")
+      
   # footer ------------------------------------------------------------------
  
  
