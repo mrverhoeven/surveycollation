@@ -395,14 +395,14 @@
 
     dnrdat[ , sort(unique(TAXON)),]
     dnrdat[ TAXON == "Bidens species"|
-             TAXON == "Biden sp.", TAXON := "Bidens spp.",]
+             TAXON == "Bidens sp.", TAXON := "Bidens spp.",]
     dnrdat[ TAXON == "Carex"|
               TAXON == "Carex sp.", TAXON := "Carex spp.",]
     dnrdat[ TAXON == "Chara"|
               TAXON == "Chara sp.", TAXON := "Chara spp.",]
     dnrdat <- subset(dnrdat, TAXON != "Dreissena polymorpha")
     dnrdat[ TAXON == "Drepanocladus; Fontinalis; etc", TAXON := "Drepanocladus or Fontinalis spp.",]
-    dnrdat[ TAXON == "Elatine sp", TAXON := "Elatine spp.",]
+    dnrdat[ TAXON == "Elatine sp.", TAXON := "Elatine spp.",]
     dnrdat[ TAXON == "Eleocharis" | TAXON == "Eleocharis sp.", TAXON := "Eleocharis spp.",]
     dnrdat[ TAXON == "Elodea sp." , TAXON := "Elodea spp.",]
     dnrdat[ TAXON == "Equisetum sp.", TAXON := "Equisetum spp.",]
@@ -442,36 +442,123 @@
     dnrdat[ TAXON == "Wolffia sp." | TAXON == "Wolffia" , TAXON := "Wolffia spp.",]
     dnrdat[ TAXON == "Zanichellia palustris" , TAXON := "Zannichellia palustris",]
     dnrdat[ TAXON == "Unknown emergent" , TAXON := "Unknown emergent species",] 
+    dnrdat[ TAXON == "Alnus sp." | TAXON == "Alnus species" , TAXON := "Alnus spp.",]
+    dnrdat[ TAXON == "Graminae"  , TAXON := "Gramineae/Poaceae Family",]
+    dnrdat[ TAXON == "Phragmites australis (communis)"  , TAXON := "Phragmites australis",]
+    dnrdat[ TAXON == "Schoenoplectus pungens/torreyi"  , TAXON := "Schoenoplectus pungens or torreyi",]
+    dnrdat[ TAXON == "Sedge sp."  , TAXON := "Carex spp.",]
+    
+    dnrdat[ TAXON == "Schoenoplectus pungens/torreyi"  , TAXON := "Schoenoplectus pungens or torreyi",]
+    
+    
+    
     
     dnrdat [ , TAXON := droplevels(TAXON),]
-    dnrdat[ , sort(unique(TAXON)),]
-    dnrdat[ , .N, TAXON]
-
+    dnrdat[ , sort(unique(as.character(TAXON))),]
+    
 # review dataset and export -----------------------------------------------
 
     str(dnrdat)
     dnrdat [ , SUBSTRATE := droplevels(SUBSTRATE),]
-    dnrdat [ , TAXON := droplevels(TAXON),]
     dnrdat [ , SAMPLE_TYPE_DESCR := droplevels(SAMPLE_TYPE_DESCR),]
+    
+    dnrdat[ , .N , TAXON] #n occurrences by spp
+    dnrdat[ , .N , c("SURVEY_ID","DATASOURCE")] #n obseravtion in each survey (total lines = n surveys)
+    dnrdat[ , length(unique(SURVEY_ID)) , DATASOURCE ] #nsurveys submitted by each DNR contributor
+    
+    names(dnrdat)[3] <- "SURVEY_ID_DATASOURCE"
+    names(dnrdat)[16] <- "POINT_LVL_SECCHI"
+    
+    #create new, unique survey ID for each survey
+    dnrdat[ , .N , c("SURVEY_ID_DATASOURCE","DATASOURCE")]
+    nrow(dnrdat[ , .N , c("SURVEY_ID_DATASOURCE","DATASOURCE")])
+    
+    dnrdat[, SURVEY_ID := .GRP, by = c("SURVEY_ID_DATASOURCE","DATASOURCE")] 
+    
+    #and a unique ID for each sample point (groups the plant obs)
+    
+    dnrdat[, POINT_ID := .GRP, by = c("STA_NBR", "SURVEY_ID_DATASOURCE", "DATASOURCE")]
+    
+    #and finally a unique ID for each observation in the dataset
+    dnrdat[, OBS_ID := .I]
+
+
+# metadata for this dataset -----------------------------------------------
+
+#' MN DNR has 3 primary db's with these data in them. First is shallow lakes. 
+#' We can get most of that from a 2018 Muthukrishnan Et al. data archive. There
+#' are also data collected by Fisheries--these were shared by Donna Dustin. 
+#' Finally, data from the Lakes and Rivers or Lakes Habitat (a.k.a Perleberg 
+#' and Radomski) were acquired through a formal data request (which only turned
+#' up data collected before 2013). 
+#' 
+#' Muthukrishnan, R., Hansel-Welch, N., & Larkin, D. J. (2018). Environmental
+#' filtering and competitive exclusion drive biodiversity-invasibility 
+#' relationships in shallow lake plant communities. Journal of Ecology, 106(5),
+#' 2058–2070. https://doi.org/10.1111/1365-2745.12963
+#' 
+#' We joined these three datasets together, resulting in the following:    
     str(dnrdat)
-    
-    dnrdat[]
-    
-    occurrences <- dnrdat[ , .N , TAXON]
-    surveyn <- dnrdat[ , .N , SURVEY_ID]
-    datasourcensurveys <- dnrdat[ , length(unique(SURVEY_ID)) , DATASOURCE ]
-    
-    
-    
-    
-    write.csv(dnrdat, file = "data/output/DNR_PI_Data_Combined")
+#' Where: 
+#'  **DOWLKNUM** - MNDNR Dept of Waters unique waterbody identifier, or an 
+#'   identifier from NWI or other to distinguish each waterbody
+#'  **LAKE_NAME** - Lake name as provided by data contributor, has redundancies, 
+#'   lake identification should default to DOWLKNUM
+#'  **SURVEY_ID_DATASOURCE** - Unique survey IDs from each data contributor 
+#'   (only unique within each contributor group)
+#'  **SURVEY_DATE** - date of observation in yyyy-mm-dd
+#'  **STA_NBR** - identifier for each point within a point-intercept survey (not
+#'   all repeated surveys are guaranteed to be repeated samples of the same geo-
+#'   locations if looking for repeat sampling of individual points through time,
+#'   carefully consider X,Y coords where avail and total *n* points in each 
+#'   survey to be sure repeated samples targeted same locs)
+#'  **DEPTH_FT** - depth observed at each sample location, measured in various 
+#'   methods including depth pole/probe, weighted rope, sonar, etc.
+#'  **SUBSTRATE** - sustrate observations from surveys collected IAW:
+#'   Perleberg, D., P. Radomski, S. Simon, K. Carlson, and J. Knopik. 2016. 
+#'   Minnesota Lake Plant Survey Manual, for use by MNDNR Fisheries Section and
+#'   EWR Lake Habitat Program. Minnesota Department of Natural Resources. 
+#'   Ecological and Water Resources Division. Brainerd, MN. 128 pages including
+#'   Appendices A-E.
+#'   ![](figs/DNR Substrates_text.png)
+#'   ![](figs/DNR Substrates.png)
+#'  **TAXON** - Scientific name of taxa observed. Note that higher taxa classes
+#'   are used when surveyors are unable to identify taxa to the species level.
+#'   Each taxon observation is classified to the lowest level possible by
+#'   surveyor
+#'  **TAXACODE** - These are codes used by each datasource for taxa names. If
+#'   using these codes, note that they may differ among datasources and this 
+#'   script has used keys supplied by each datasource to develop the **TAXON**
+#'   field from those keys
+#'  **DATASOURCE** - Group supplying the data for this collation effort
+#'  **UTMX** - X component of UTM location (datum: 83, zone: 15). We have not 
+#'   evaluated the quality or consistency of these data
+#'  **UTMY** -  Y component of UTM location (datum: 83, zone: 15). We have not 
+#'   evaluated the quality or consistency of these data
+#'  **SURVEYOR** - Name of surveyor or surveying entity, where provided
+#'  **SAMPLE_NOTES** - Notes associated with each observation
+#'  **SAMPLE_TYPE_DESCR** - used in Lakes and Rivers data to identify shoreline
+#'   plots and regular PI plots. ![](figs/DNR Nearshore site.png) See:
+#'   Perleberg, D., P. Radomski, S. Simon, K. Carlson, and J. Knopik. 2016. 
+#'   Minnesota Lake Plant Survey Manual, for use by MNDNR Fisheries Section and
+#'   EWR Lake Habitat Program. Minnesota Department of Natural Resources. 
+#'   Ecological and Water Resources Division. Brainerd, MN. 128 pages including
+#'   Appendices A-E.
+#'  **POINT_LVL_SECCHI** - Secchi observations taxen at samling locations as
+#'   collected only in the Muthukrishnan Et al dataset.
+#'  **SURVEY_ID** - Unique ID assigned to each survey in this dataset
+#'  **POINT_ID** - Unique ID asisgned to each point in this dataset (aggregates 
+#'   osbervations of taxa within each point)
+#'  **OBS_ID** - Unique ID for each observation in this dataset
+#'    
+#'      
+    # write.csv(dnrdat, file = "data/output/DNR_PI_Data_Combined.csv")
       
   # footer ------------------------------------------------------------------
  
  
  #' ## Document footer 
  #' 
- #' Document spun with: datestamp <- Sys.Date();ezspin("scripts/g_p_crispus_analysis_mrv.R", out_dir = paste("html_outputs/g_p_crispus_analysis_mrv",datestamp, sep = ""), fig_dir = "figures", keep_md=FALSE)
  #' 
  #' Session Information:
  #+ sessionInfo
