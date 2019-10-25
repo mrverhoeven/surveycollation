@@ -29,5 +29,7 @@ rsconnect/
 .ppt
 cleaned
 surveycollation.Rproj
-*.xls
+*.xls*
 .Rproj.user
+
+/data/**

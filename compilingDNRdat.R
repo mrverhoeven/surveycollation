@@ -1,9 +1,21 @@
 # header ------------------------------------------------------------------
 
-#' # Compiling statewide PI data for MACRONICHE project
-#' ### Author: Mike Verhoeven
-#' ### Date: 22 Oct 2019
 
+#'---
+#' title: "Compiling statewide PI data for MACRONICHE project"
+#' author: "Mike Verhoeven"
+#' output: 
+#'    html_document:
+#'       toc: true
+#'       theme: default
+#'       toc_depth: 2
+#'       toc_float:
+#'           collapsed: false
+#'---
+
+
+  strttime <- Sys.time()
+  getwd()
 #' # Preamble
 #' Load libraries
 #+warning=FALSE, message=FALSE 
@@ -17,7 +29,7 @@
 
 
 # load in existing databases ----------------------------------------------
-
+#' ## Load in DNR databases
 #' MN DNR has 3 primary db's with these data in them. First is shallow lakes. 
 #' We can get most of that from a 2018 Muthukrishnan Et al. data archive. There
 #' are also data collected by Fisheries--these were shared by Donna Perleberg. 
@@ -28,7 +40,7 @@
 
 # shallow lakes -----------------------------------------------------------
 
-
+#' ### Shallow Lakes Program
   # shallow lakes data
   
   sldat <- fread(file = "data/contributor_data/macroniche_adds/muthukrishnan/Lake_plant_diversity_data.csv") # use data.table to pull in dataset
@@ -68,7 +80,7 @@
 
 # fisheries div -----------------------------------------------------------
 
-
+#' ### Fisheries Program
 #' Now we want to pull in the next dataset. These are PIs from the Fisheries
 #' division. 
   
@@ -87,7 +99,7 @@
   fshdat[ , summary(DEPTH_FT), ]
   fshdat[ , 32:338 , ][ ,sum() , ]
   fshdat[ , vegfound := rowSums(.SD), .SDcols = 32:338]
-  fshdat[, vegfound, ]
+  # fshdat[, vegfound, ]
   fshdat[ vegfound == 0 , novegfound := 1, ]
   fshdat[is.na(novegfound) == T , novegfound := 0, ]
   fshdat[, vegfound := NULL, ]
@@ -133,21 +145,20 @@
   a <- data.table(SCIENTIFIC_NAME = "No Veg Found", PLANT_SPECIES_ABBREV = "novegfound")
   fish_codes <- rbind(fish_codes[, 3:4],a)
   
-  match(fshdat_2$taxon, fish_codes$PLANT_SPECIES_ABBREV)
+  # CHECK MATCHES
+  # match(fshdat_2$taxon, fish_codes$PLANT_SPECIES_ABBREV)
   
   fshdat_2[ , taxonfull := fish_codes$SCIENTIFIC_NAME[match(fshdat_2$taxon, fish_codes$PLANT_SPECIES_ABBREV)] , ]
   
   fshdat_2[ , sort(unique(taxonfull)), ]
   
-  
-
   #remove previous versions datafiles from workspace
   rm(fshdat, fshdat_1,fish_codes,a)
 
 
 # lakes and rivers --------------------------------------------------------
 
-  
+#' ### Lakes and Rivers Program
   # lnr data
   
   lnrdat <- fread(file = "data/contributor_data/macroniche_adds/perleberg/LakePlant export 20190701 finalql.csv")
@@ -186,7 +197,7 @@
   lnrdat_3 <- lnrdat_2[SAMPLE_TYPE_DESCR == "sampled" | SAMPLE_TYPE_DESCR == "sampled - shoreline plot", , ] 
   
   lnrdat_3[ , SAMPLE_NOTES := as.factor(SAMPLE_NOTES), ] 
-  lnrdat_3[ SAMPLE_NOTES != "", SAMPLE_NOTES, ] 
+  lnrdat_3[ SAMPLE_NOTES != "", .(SAMPLE_NOTES), ] 
   
   lnrdat_3[ , VEG_REL_ABUNDANCE_DESCR := as.factor(VEG_REL_ABUNDANCE_DESCR),  ]
   lnrdat_3[ , summary(VEG_REL_ABUNDANCE_DESCR),]
@@ -210,9 +221,10 @@
   lnrtaxa <- fread(file = "data/contributor_data/macroniche_adds/perleberg/taxalist.csv")
   #mndnr exported all rare species as "X" so we'll need to add this to the taxalist
   lnrtaxa <- rbind(lnrtaxa,data.table(SCIENTIFIC_NAME = "Rare Species", TAXA_CODE = "X"))
-  
-  match(lnrdat_4$value, lnrtaxa$TAXA_CODE)
-  
+
+  # # check matches
+  # match(lnrdat_4$value, lnrtaxa$TAXA_CODE)
+
   lnrdat_4[ , taxon := lnrtaxa$SCIENTIFIC_NAME[match(lnrdat_4$value, lnrtaxa$TAXA_CODE)] , ]
   
   lnrdat_4[ , sort(unique(taxon)), ]
@@ -222,7 +234,13 @@
   #remove datafiles from substeps
   rm(lnrdat_1, lnrdat_2, lnrdat_3, lnrdat, lnrtaxa, int, summary)
   
+
+# clean datasets to prep for merge ----------------------------------------
+
+#' ## Prep datasets for merge   
+  
 # drop unused or re-creatable columns  -------------------------------------------------------
+#' ### Drop unneeded columns
 
   summary(fshdat_2)
   names(fshdat_2)
@@ -242,6 +260,7 @@
 
 # clean column names -------------------------------------------------------
 
+#' ### Clean column names
   cbind(names(fshdat_2),names(lnrdat_4), names(sldat))
 
   setcolorder(sldat,  c(  1,2,3,4,5,7,9, 11, 6,10,8))
@@ -304,7 +323,9 @@
   
     
 # merge datasets ----------------------------------------------------------
-
+  
+#' ## Merge datasets
+  
   dnrdat <- merge(lnrdat_4,fshdat_2, all = T )
     str(dnrdat)
     str(sldat)
@@ -314,12 +335,15 @@
 
 # align the no veg found notes ------------------------------------------
 
+#' ### Clean No Veg Found notes
+    
   names(dnrdat)
     str(dnrdat)
     
     dnrdat[ , "TAXON" := as.factor(TAXON), ]
     dnrdat[ , .N , TAXON ]
     dnrdat[ TAXON == "" , .N , ]
+    # number of obs per taxon
     dnrdat[  , sort(summary(TAXON)) , ]
     
     dnrdat[ , summary(as.factor(VEG_REL_ABUNDANCE_DESCR)),] #from lnr
@@ -356,9 +380,11 @@
     
 # resolve date data -------------------------------------------------------
   
-    dnrdat[ DATASOURCE == "Muthukrishnan Et al", SURVEY_DATE ,]
-    dnrdat[ DATASOURCE == "DNR Lakes and Rivers", SURVEY_DATE ,]
-    dnrdat[ DATASOURCE == "DNR Fisheries", SURVEY_DATE ,]
+#' ### Clean dates
+    
+    dnrdat[ DATASOURCE == "Muthukrishnan Et al", .(SURVEY_DATE) ,]
+    dnrdat[ DATASOURCE == "DNR Lakes and Rivers", .(SURVEY_DATE) ,]
+    dnrdat[ DATASOURCE == "DNR Fisheries", .(SURVEY_DATE) ,]
     
 #'we will caress these all into a yyyy-mm-dd, ex: 1992-01-31    
     
@@ -373,16 +399,19 @@
     
 
 # resolve substrates ------------------------------------------------------
-    
+
+#' ### Review substrates data
+       
     dnrdat[ , str(SUBSTRATE) ,]
     dnrdat[ , SUBSTRATE := as.factor(tolower(SUBSTRATE)) ,]
-    levels(dnrdat$SUBSTRATE)
     dnrdat[ , summary(SUBSTRATE) ,]
     
 #' We'll leave this alone for now until we decide it is useful or needed data.
 
 # resolve depth data ------------------------------------------------------
-
+    
+#' ### Review depth data
+    
     dnrdat[ , summary(DEPTH_FT), ]
     dnrdat[ DEPTH_FT > 99 , , ]
     dnrdat[ is.na(DEPTH_FT), , ]
@@ -393,6 +422,8 @@
 
 # resolve taxa names ------------------------------------------------------
 
+#' ### Clean taxa names    
+    
     dnrdat[ , sort(unique(TAXON)),]
     dnrdat[ TAXON == "Bidens species"|
              TAXON == "Bidens sp.", TAXON := "Bidens spp.",]
@@ -458,6 +489,8 @@
     
 # review dataset and export -----------------------------------------------
 
+#' ## Review and Export dataset    
+    
     str(dnrdat)
     dnrdat [ , SUBSTRATE := droplevels(SUBSTRATE),]
     dnrdat [ , SAMPLE_TYPE_DESCR := droplevels(SAMPLE_TYPE_DESCR),]
@@ -472,11 +505,9 @@
     #create new, unique survey ID for each survey
     dnrdat[ , .N , c("SURVEY_ID_DATASOURCE","DATASOURCE")]
     nrow(dnrdat[ , .N , c("SURVEY_ID_DATASOURCE","DATASOURCE")])
-    
     dnrdat[, SURVEY_ID := .GRP, by = c("SURVEY_ID_DATASOURCE","DATASOURCE")] 
     
     #and a unique ID for each sample point (groups the plant obs)
-    
     dnrdat[, POINT_ID := .GRP, by = c("STA_NBR", "SURVEY_ID_DATASOURCE", "DATASOURCE")]
     
     #and finally a unique ID for each observation in the dataset
@@ -485,6 +516,8 @@
 
 # metadata for this dataset -----------------------------------------------
 
+#' ### Metadata    
+    
 #' MN DNR has 3 primary db's with these data in them. First is shallow lakes. 
 #' We can get most of that from a 2018 Muthukrishnan Et al. data archive. There
 #' are also data collected by Fisheries--these were shared by Donna Dustin. 
@@ -501,66 +534,73 @@
     str(dnrdat)
 #' Where: 
 #'  **DOWLKNUM** - MNDNR Dept of Waters unique waterbody identifier, or an 
-#'   identifier from NWI or other to distinguish each waterbody
+#'   identifier from NWI or other to distinguish each waterbody  
 #'  **LAKE_NAME** - Lake name as provided by data contributor, has redundancies, 
-#'   lake identification should default to DOWLKNUM
+#'   lake identification should default to DOWLKNUM  
 #'  **SURVEY_ID_DATASOURCE** - Unique survey IDs from each data contributor 
-#'   (only unique within each contributor group)
-#'  **SURVEY_DATE** - date of observation in yyyy-mm-dd
+#'   (only unique within each contributor group)  
+#'  **SURVEY_DATE** - date of observation in yyyy-mm-dd  
 #'  **STA_NBR** - identifier for each point within a point-intercept survey (not
 #'   all repeated surveys are guaranteed to be repeated samples of the same geo-
 #'   locations if looking for repeat sampling of individual points through time,
 #'   carefully consider X,Y coords where avail and total *n* points in each 
-#'   survey to be sure repeated samples targeted same locs)
+#'   survey to be sure repeated samples targeted same locs)  
 #'  **DEPTH_FT** - depth observed at each sample location, measured in various 
-#'   methods including depth pole/probe, weighted rope, sonar, etc.
+#'   methods including depth pole/probe, weighted rope, sonar, etc. These data
+#'   have not been cleaned and may contain errors (see *Review depth data*
+#'   section above)  
 #'  **SUBSTRATE** - sustrate observations from surveys collected IAW:
 #'   Perleberg, D., P. Radomski, S. Simon, K. Carlson, and J. Knopik. 2016. 
 #'   Minnesota Lake Plant Survey Manual, for use by MNDNR Fisheries Section and
 #'   EWR Lake Habitat Program. Minnesota Department of Natural Resources. 
 #'   Ecological and Water Resources Division. Brainerd, MN. 128 pages including
-#'   Appendices A-E.
+#'   Appendices A-E.  
 #'   ![](figs/DNR Substrates_text.png)
-#'   ![](figs/DNR Substrates.png)
+#'   ![](figs/DNR Substrates.png)  
 #'  **TAXON** - Scientific name of taxa observed. Note that higher taxa classes
 #'   are used when surveyors are unable to identify taxa to the species level.
 #'   Each taxon observation is classified to the lowest level possible by
-#'   surveyor
+#'   surveyor  
 #'  **TAXACODE** - These are codes used by each datasource for taxa names. If
 #'   using these codes, note that they may differ among datasources and this 
 #'   script has used keys supplied by each datasource to develop the **TAXON**
-#'   field from those keys
-#'  **DATASOURCE** - Group supplying the data for this collation effort
+#'   field from those keys  
+#'  **DATASOURCE** - Group supplying the data for this collation effort  
 #'  **UTMX** - X component of UTM location (datum: 83, zone: 15). We have not 
-#'   evaluated the quality or consistency of these data
+#'   evaluated the quality or consistency of these data  
 #'  **UTMY** -  Y component of UTM location (datum: 83, zone: 15). We have not 
-#'   evaluated the quality or consistency of these data
-#'  **SURVEYOR** - Name of surveyor or surveying entity, where provided
-#'  **SAMPLE_NOTES** - Notes associated with each observation
+#'   evaluated the quality or consistency of these data  
+#'  **SURVEYOR** - Name of surveyor or surveying entity, where provided  
+#'  **SAMPLE_NOTES** - Notes associated with each observation  
 #'  **SAMPLE_TYPE_DESCR** - used in Lakes and Rivers data to identify shoreline
-#'   plots and regular PI plots. ![](figs/DNR Nearshore site.png) See:
+#'   plots and regular PI plots. ![](figs/DNR Nearshore site.png) See:  
 #'   Perleberg, D., P. Radomski, S. Simon, K. Carlson, and J. Knopik. 2016. 
 #'   Minnesota Lake Plant Survey Manual, for use by MNDNR Fisheries Section and
 #'   EWR Lake Habitat Program. Minnesota Department of Natural Resources. 
 #'   Ecological and Water Resources Division. Brainerd, MN. 128 pages including
-#'   Appendices A-E.
+#'   Appendices A-E.  
 #'  **POINT_LVL_SECCHI** - Secchi observations taxen at samling locations as
-#'   collected only in the Muthukrishnan Et al dataset.
-#'  **SURVEY_ID** - Unique ID assigned to each survey in this dataset
+#'   collected only in the Muthukrishnan Et al dataset.  
+#'  **SURVEY_ID** - Unique ID assigned to each survey in this dataset  
 #'  **POINT_ID** - Unique ID asisgned to each point in this dataset (aggregates 
-#'   osbervations of taxa within each point)
-#'  **OBS_ID** - Unique ID for each observation in this dataset
+#'   osbervations of taxa within each point)  
+#'  **OBS_ID** - Unique ID for each observation in this dataset  
 #'    
-#'      
+#'  
+
+#' ### Export data 
+    
     # write.csv(dnrdat, file = "data/output/DNR_PI_Data_Combined.csv")
       
   # footer ------------------------------------------------------------------
  
  
- #' ## Document footer 
- #' 
- #' 
- #' Session Information:
- #+ sessionInfo
- sessionInfo()
+#' ## Document footer 
+#' 
+#' 
+#' Session Information:
+  #script runtime
+  Sys.time() - strttime 
+  # sessionInfo
+  sessionInfo()
   
