@@ -1,5 +1,5 @@
 #'---
-#' title: "Compiling statewide PI data for MACRONICHE project"
+#' title: "Compiling DNR PI data"
 #' author: "Mike Verhoeven"
 #' output: 
 #'    html_document:

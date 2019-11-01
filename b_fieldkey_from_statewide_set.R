@@ -1,42 +1,10 @@
-#' # Correcting fieldnames in statewide data
-#' ### Author: Mike Verhoeven
-#' ### Date: 15 June 2017
-#'
 
-#' # Preamble
-#' Load libraries
-#+warning=FALSE, message=FALSE 
-  library(knitr)
-  library(ezknitr)
-  library(ggplot2)
-  library(stringr)
-  library(dplyr)
-  library(tidyr)
-  library(xtable)
-
-#' Remove anything in memory
-  rm(list = ls())
-
-#' Assign custom functions 
-  # for removing NA's
-  na.remove <-  function (x) {gsub("NA", replacement = "", 
-                                  gsub("NA,", replacement = "", x))}
-  # extra commas from the above unite function
-  TrimMult <- function(x, char=" ") {return(gsub(paste0("^", char, "*|(?<=", char, ")", char, "|", char, "*$"),
-                                          "", x, perl=T))}
-
-#' Set working directory
-  setwd("C:/Users/Mike Verhoeven/Google Drive/Documents/UMN/Grad School/Larkin Lab/Curlyleaf_retro_analysis")  
-
-#' Load in statewide dataset (with messy names):
-  ps <- read.csv(file = "data/output_data/state_clp_comp.csv") 
-  str(ps[1,])
-  length(ps[1,])-2
+  
 #' # Old Variable Names
 #' 
 #' Pull all of the variable names (field names) off of the dataset, also attaching the lake and datasource names to those to help me identify the survey that I need to look at to interpret names
   fielduse <- data.frame()
-  for (i in 1:(length(ps[1,])-2)) { # dont do the NA or "" columns that I added atthe beginning (dummy columns, both have no data in them; these are columns 599:600)
+  for (i in 1:(length(ps[1,])-2)) { # dont do the NA or "" columns that I added at the beginning (placeholder columns, both have no data in them; these are columns 599:600)
         # code for troubleshooting:
         #####
         # i =1
@@ -112,42 +80,6 @@
   # make a vector that matches ps column names to my old names and assigns each object the new name (order of old dataset is maintained)
   pst1 <- fk3$mrvname[match(pst, fk3[,1])] 
   paste(pst1[345],names(ps[345]), sep= "---") # test one match
-
-#' Not used:
-
-  #####
-  # # assign that to the big dataset
-  # # colnames(ps) <- pst1 #assign unnumbered column names
-  # # str(ps)
-  # 
-  # # reorder the dataset with alphabetical columns
-  # order(names(ps))
-  # ps.b <- ps[,order(names(ps))]
-  # str(ps.b)
-  # summary(ps.b$datemv)
-  # length(unique(colnames(ps.b)))
-  # 
-  # # # combine all columns with the same name
-  # # names(ps.b)=="point.id"
-  # # head(ps[,names(ps)=="point.id"])
-  # # point.test <- unite(ps[,names(ps)=="point.id"],point.id.t,names(ps[,names(ps)=="point.id"]))
-  # 
-  # # use sorted data to say that point.id = paste(all point.id)and so on, down through every row.
-  # 
-  # 
-  # for (i in 1:length(ps)) {
-  #   print(names(ps[,i]),summary(ps[,i]))
-  # }
-  # summary(ps)
-  # 
-  # # now we need to combine similar columns
-  # # do any columns have nothing but NAs?
-  # y <- c()
-  # for (i in 1:length(ps)) {
-  #   y[i] = length(ps[,i]) == sum(is.na(ps[,i]))
-  # }
-  # sum(y)
-#####  
 
 #' # Collating Multiple Variables Into A Single Column
 #' 
