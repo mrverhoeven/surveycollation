@@ -1,6 +1,3 @@
-# header ------------------------------------------------------------------
-
-
 #'---
 #' title: "Compiling statewide PI data for MACRONICHE project"
 #' author: "Mike Verhoeven"
@@ -8,7 +5,7 @@
 #'    html_document:
 #'       toc: true
 #'       theme: default
-#'       toc_depth: 2
+#'       toc_depth: 3
 #'       toc_float:
 #'           collapsed: false
 #'---
@@ -189,12 +186,12 @@
   lnrdat_2 <-  melt(lnrdat_1, id.vars = c(1:16, 32:34))
   
 #' We'll want to simplify these and drop unsampled sites from the data, also
-#' reevaluate what to do with the "sampled subjective sites" and "shoreline 
+#' reevaluate what to do with the "sampled subjective sites",  "shoreline 
 #' surveys." For now, I have dropped all of these
   lnrdat_2[ , SAMPLE_TYPE_DESCR := as.factor(SAMPLE_TYPE_DESCR), ]
   lnrdat_2[, summary(SAMPLE_TYPE_DESCR) , ]
   
-  lnrdat_3 <- lnrdat_2[SAMPLE_TYPE_DESCR == "sampled" | SAMPLE_TYPE_DESCR == "sampled - shoreline plot", , ] 
+  lnrdat_3 <- lnrdat_2[SAMPLE_TYPE_DESCR == "sampled" , , ] 
   
   lnrdat_3[ , SAMPLE_NOTES := as.factor(SAMPLE_NOTES), ] 
   lnrdat_3[ SAMPLE_NOTES != "", .(SAMPLE_NOTES), ] 
