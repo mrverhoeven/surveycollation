@@ -616,7 +616,7 @@ ps <- data.table(NULL)
 #' 
 
 # Set working directory back to project location
-     setwd("E:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")  
+     setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")  
 
 #what is the size of the dataset?
 print(c(ncol(ps),nrow(ps))) 
@@ -795,6 +795,111 @@ nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 # set working Dir to sourcefile loc:
 setwd("E:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/andrea_prichard")
 
+
+# save progress as a .csv file in output data folder  
+# write.csv(ps, file = "data/output/clp_proj_surveys.csv", row.names = F)    
+# ps <- fread(file = "data/output/clp_proj_surveys.csv")
+
+
+
+# add DOWs to CLP lakes ---------------------------------------------------
+
+
+#' ## add the DOW ids to these lakes:
+#' Adam Kautza had compiled the lake Info for these lakes in the CLP project
+#' 
+
+AKdat <- fread(file = "data/input/pcrispus_wDNRtrtdat.csv", colClasses=c(Lake.ID="character"))
+AKdat[ ,.N, by = .(Lake.ID,Lake.x) ]
+ps[ ,.N, by = .(lknamemv) ]
+
+cbind(AKdat[ ,.N, by = .(Lake.ID,Lake.x) ],
+      ps[ ,.N, by = .(lknamemv) ])
+
+sort(unique(AKdat$Lake.x))
+sort(unique(ps$lknamemv))
+
+# what lakes in ps set are unmatched?
+A <- sort(unique(AKdat$Lake.x))
+B <- sort(unique(ps$lknamemv))
+B[is.na(match(B,A))==T]
+
+
+# fix lake names 
+
+#' Clear lakes (2) each from dif datasource:
+ps[lknamemv=="clearm", c("lknamemv", "datasourcemv" )]
+ps[lknamemv=="clear"&
+     datasourcemv =="newman", lknamemv := "clearm"]
+ps[lknamemv=="clear"&
+     datasourcemv =="mccomas", lknamemv := "clearw"]
+#'Tonka's bays
+ps[lknamemv=="graystonka", lknamemv:= "grays"]
+ps[lknamemv=="halsteadtonka", lknamemv := "halsted"]
+ps[lknamemv=="stubbstonka", lknamemv := "stubbs"]
+ps[lknamemv=="stalbanstonka", lknamemv := "stalban"]
+ps[lknamemv=="maxwelltonka", lknamemv := "maxwell" ]
+ps[lknamemv=="northarmtonka", lknamemv := "northarm"  ]
+ps[lknamemv=="libbstonka", lknamemv := "libbs" ]
+#'Little crosby
+ps[lknamemv=="crosbyupper"|
+     lknamemv=="crosbylower", .N, by = c("lknamemv", "datemv")] #match inferred by smaller N on smaller lake and pairing with Ray's notes on lake names and DOWs
+ps[lknamemv=="crosbyupper", lknamemv := "uppercrosby"]
+#' Long lakes (2)
+ps[lknamemv=="long", c("lknamemv", "datasourcemv")]
+ps[lknamemv=="long"&
+     datasourcemv =="mccomas", lknamemv := "longd" ]
+ps[lknamemv=="long"&
+     datasourcemv =="newman", lknamemv := "longi" ]
+#'mccarrons
+ps[lknamemv=="mccarron", lknamemv := "mccarrons"]
+#' Sarah east and west
+ps[lknamemv=="saraheast", lknamemv := "sarahe"]
+ps[lknamemv=="sarahwest", lknamemv := "sarahw"]
+#' southcenter
+ps[lknamemv=="southcentr", lknamemv := "southcenter" ]
+ps[lknamemv=="crosbylower", lknamemv:= "bigcrosby"]
+AKdat[Lake.x== "littlecrosby", Lake.x := "bigcrosby"]
+AKdat[Lake.x== "uppercrosby", Lake.ID := "62022500"]
+ps[lknamemv=="crook", lknamemv:="crookneck"]
+
+# what lakes in Adams set are unmatched?
+A <- sort(unique(AKdat$Lake.x))
+B <- sort(unique(ps$lknamemv))
+B[is.na(match(B,A))==T]
+
+#' We'll grab these dow numbers manually:
+# make DOW table from Adam's data and add in the missing DOWs:
+DOW <- AKdat[ ,.N, by = .(Lake.ID,Lake.x) ]
+missingdow <- data.table(Lake.x = B[is.na(match(B,A))==T], 
+                         Lake.ID = c("10001200", "06000200", "27009501", "10000600", "02000300", "18038600", "27013322", "27013338"), N = NA)
+
+DOWIds <- rbind(DOW, missingdow)
+
+merge(head(ps), DOWIds, by.x = "lknamemv", by.y = "Lake.x")
+
+match(ps$lknamemv, DOWIds$Lake.x)
+dows <- DOWIds[match(ps[,lknamemv,], DOWIds[,Lake.x,]),Lake.ID]
+
+ps[ , dowid := dows  ,  ]
+
+unique(ps$dowid)
+
+
+# new datasets ----------------------------------------
+
+ps <- tbl_df(ps)
+ps[] <- lapply(ps[], factor)
+
+# 2018 - AllisonGamble ----------------------------------------------------
+
+
+#' ## Gamble Surveys:
+
+# set working Dir to sourcefile loc:
+setwd("data/input/contributor_data/2018_submissions/Allison_Gamble")
+>>>>>>> 01cda813a6cd48d521f467bad89e3fe4d0fa7c09
+
 # List file extensions that you'd like to cover
 files = list.files(pattern= "*.xls")# Get the files names for extension j
 
@@ -805,6 +910,7 @@ for  (i in c(1:length(files))) {
   processingtable <- read_excel(files[i], trim_ws = T)
   
   # add a column for datasource and populate with SOURCEi
+<<<<<<< HEAD
   processingtable$datasourcemv <- rep("Andrea Prichard", length(processingtable[,1]))
   
   # add a column for lake name
@@ -812,6 +918,15 @@ for  (i in c(1:length(files))) {
   
   # add a column for date YEAR-MO-DA (version 2)
   processingtable$datemv <- rep(as.character(as.Date(paste(word(gsub("_","-", file_path_sans_ext(files[i])),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
+=======
+  processingtable$datasourcemv <- rep("Allison_Gamble", length(processingtable[,1]))
+  
+  # add a column for lake name
+  processingtable$lknamemv <- rep(tolower(first.word(files[i])), length(processingtable[,1]))
+  
+  # add a column for date YEAR-MO-DA (version 2)
+  processingtable$datemv <- rep(as.character(as.Date(paste(word(sub(" ","-", file_path_sans_ext(files[i])),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
+>>>>>>> 01cda813a6cd48d521f467bad89e3fe4d0fa7c09
                                 length(processingtable[,1]))
   
   # clean up fieldnames
@@ -840,6 +955,7 @@ for  (i in c(1:length(files))) {
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
+<<<<<<< HEAD
 # 2018 - AprilLondo ----------------------------------------------------
 
 
@@ -921,6 +1037,11 @@ str(dow18)
 dow18[ , survey_contributor := as.factor(survey_contributor),]
 
 levels(dow18$survey_contributor)
+=======
+##################################################################
+
+
+>>>>>>> 01cda813a6cd48d521f467bad89e3fe4d0fa7c09
 
 #####
 
