@@ -1,3 +1,5 @@
+# header ------------------------------------------------------------------
+
 
 #'---
 #' title: "Compiling stakeholder PI data"
@@ -59,7 +61,7 @@ ps <- data.table(NULL)
   #' ## Brasch Surveys:
 
   # set working Dir to sourcefile loc:
-  setwd("data/input/contributor_data/clp_proj/brasch")
+  setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/clp_proj/brasch")
  
   # List file extensions that you'd like to cover
   files = list.files(pattern= "*.xls")# Get the files names for extension j
@@ -637,9 +639,9 @@ names(ps[,which(as.vector(colSums(is.na(ps)) == nrow(ps)))])
 
 
 # save progress as a .csv file in output data folder  
-# write.csv(ps, file = "data/output/clp_proj_surveys.csv", row.names = F)    
+# write.csv(ps, file = "G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/output/clp_proj_surveys.csv", row.names = F)    
 # Set working directory back to project location
-setwd("E:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")  
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")  
 ps <- fread(file = "data/output/clp_proj_surveys.csv")
 
 
@@ -670,7 +672,7 @@ B[is.na(match(B,A))==T]
 # fix lake names 
 
 #' Clear lakes (2) each from dif datasource:
-ps[lknamemv=="clearm", c("lknamemv", "datasourcemv" )]
+ps[lknamemv=="clear", c("lknamemv", "datasourcemv" )]
 ps[lknamemv=="clear"&
      datasourcemv =="newman", lknamemv := "clearm"]
 ps[lknamemv=="clear"&
@@ -739,14 +741,14 @@ ps[] <- lapply(ps[], factor)
 #' ## Gamble Surveys:
 
 # set working Dir to sourcefile loc:
-setwd("E:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/Allison_Gamble")
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/Allison_Gamble")
 
 # List file extensions that you'd like to cover
 files = list.files(pattern= "*.xls")# Get the files names for extension j
 
 # for those files, go through, clean up headings and compile them
 for  (i in c(1:length(files))) {
-  # i = 13
+  # i = 113
   # load in survey FILEi, name it processingtable:
   processingtable <- read_excel(files[i], trim_ws = T)
   
@@ -754,7 +756,7 @@ for  (i in c(1:length(files))) {
   processingtable$datasourcemv <- rep("Allison Gamble", length(processingtable[,1]))
   
   # add a column for lake name
-  processingtable$lknamemv <- rep(tolower(word(files[i], sep = "_")), length(processingtable[,1]))
+  processingtable$lknamemv <- rep(tolower(word(files[i], sep = " ")), length(processingtable[,1]))
   
   # add a column for date YEAR-MO-DA (version 2)
   processingtable$datemv <- rep(as.character(as.Date(paste(word(sub(" ","-", file_path_sans_ext(files[i])),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
@@ -793,112 +795,7 @@ nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 #' ## Andrea Prichard Surveys:
 
 # set working Dir to sourcefile loc:
-setwd("E:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/andrea_prichard")
-
-
-# save progress as a .csv file in output data folder  
-# write.csv(ps, file = "data/output/clp_proj_surveys.csv", row.names = F)    
-# ps <- fread(file = "data/output/clp_proj_surveys.csv")
-
-
-
-# add DOWs to CLP lakes ---------------------------------------------------
-
-
-#' ## add the DOW ids to these lakes:
-#' Adam Kautza had compiled the lake Info for these lakes in the CLP project
-#' 
-
-AKdat <- fread(file = "data/input/pcrispus_wDNRtrtdat.csv", colClasses=c(Lake.ID="character"))
-AKdat[ ,.N, by = .(Lake.ID,Lake.x) ]
-ps[ ,.N, by = .(lknamemv) ]
-
-cbind(AKdat[ ,.N, by = .(Lake.ID,Lake.x) ],
-      ps[ ,.N, by = .(lknamemv) ])
-
-sort(unique(AKdat$Lake.x))
-sort(unique(ps$lknamemv))
-
-# what lakes in ps set are unmatched?
-A <- sort(unique(AKdat$Lake.x))
-B <- sort(unique(ps$lknamemv))
-B[is.na(match(B,A))==T]
-
-
-# fix lake names 
-
-#' Clear lakes (2) each from dif datasource:
-ps[lknamemv=="clearm", c("lknamemv", "datasourcemv" )]
-ps[lknamemv=="clear"&
-     datasourcemv =="newman", lknamemv := "clearm"]
-ps[lknamemv=="clear"&
-     datasourcemv =="mccomas", lknamemv := "clearw"]
-#'Tonka's bays
-ps[lknamemv=="graystonka", lknamemv:= "grays"]
-ps[lknamemv=="halsteadtonka", lknamemv := "halsted"]
-ps[lknamemv=="stubbstonka", lknamemv := "stubbs"]
-ps[lknamemv=="stalbanstonka", lknamemv := "stalban"]
-ps[lknamemv=="maxwelltonka", lknamemv := "maxwell" ]
-ps[lknamemv=="northarmtonka", lknamemv := "northarm"  ]
-ps[lknamemv=="libbstonka", lknamemv := "libbs" ]
-#'Little crosby
-ps[lknamemv=="crosbyupper"|
-     lknamemv=="crosbylower", .N, by = c("lknamemv", "datemv")] #match inferred by smaller N on smaller lake and pairing with Ray's notes on lake names and DOWs
-ps[lknamemv=="crosbyupper", lknamemv := "uppercrosby"]
-#' Long lakes (2)
-ps[lknamemv=="long", c("lknamemv", "datasourcemv")]
-ps[lknamemv=="long"&
-     datasourcemv =="mccomas", lknamemv := "longd" ]
-ps[lknamemv=="long"&
-     datasourcemv =="newman", lknamemv := "longi" ]
-#'mccarrons
-ps[lknamemv=="mccarron", lknamemv := "mccarrons"]
-#' Sarah east and west
-ps[lknamemv=="saraheast", lknamemv := "sarahe"]
-ps[lknamemv=="sarahwest", lknamemv := "sarahw"]
-#' southcenter
-ps[lknamemv=="southcentr", lknamemv := "southcenter" ]
-ps[lknamemv=="crosbylower", lknamemv:= "bigcrosby"]
-AKdat[Lake.x== "littlecrosby", Lake.x := "bigcrosby"]
-AKdat[Lake.x== "uppercrosby", Lake.ID := "62022500"]
-ps[lknamemv=="crook", lknamemv:="crookneck"]
-
-# what lakes in Adams set are unmatched?
-A <- sort(unique(AKdat$Lake.x))
-B <- sort(unique(ps$lknamemv))
-B[is.na(match(B,A))==T]
-
-#' We'll grab these dow numbers manually:
-# make DOW table from Adam's data and add in the missing DOWs:
-DOW <- AKdat[ ,.N, by = .(Lake.ID,Lake.x) ]
-missingdow <- data.table(Lake.x = B[is.na(match(B,A))==T], 
-                         Lake.ID = c("10001200", "06000200", "27009501", "10000600", "02000300", "18038600", "27013322", "27013338"), N = NA)
-
-DOWIds <- rbind(DOW, missingdow)
-
-merge(head(ps), DOWIds, by.x = "lknamemv", by.y = "Lake.x")
-
-match(ps$lknamemv, DOWIds$Lake.x)
-dows <- DOWIds[match(ps[,lknamemv,], DOWIds[,Lake.x,]),Lake.ID]
-
-ps[ , dowid := dows  ,  ]
-
-unique(ps$dowid)
-
-
-# new datasets ----------------------------------------
-
-ps <- tbl_df(ps)
-ps[] <- lapply(ps[], factor)
-
-# 2018 - AllisonGamble ----------------------------------------------------
-
-
-#' ## Gamble Surveys:
-
-# set working Dir to sourcefile loc:
-setwd("data/input/contributor_data/2018_submissions/Allison_Gamble")
->>>>>>> 01cda813a6cd48d521f467bad89e3fe4d0fa7c09
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/andrea_prichard")
 
 # List file extensions that you'd like to cover
 files = list.files(pattern= "*.xls")# Get the files names for extension j
@@ -910,24 +807,13 @@ for  (i in c(1:length(files))) {
   processingtable <- read_excel(files[i], trim_ws = T)
   
   # add a column for datasource and populate with SOURCEi
-<<<<<<< HEAD
   processingtable$datasourcemv <- rep("Andrea Prichard", length(processingtable[,1]))
   
   # add a column for lake name
   processingtable$lknamemv <- rep(tolower(word(files[i], sep = "_")), length(processingtable[,1]))
   
   # add a column for date YEAR-MO-DA (version 2)
-  processingtable$datemv <- rep(as.character(as.Date(paste(word(gsub("_","-", file_path_sans_ext(files[i])),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
-=======
-  processingtable$datasourcemv <- rep("Allison_Gamble", length(processingtable[,1]))
-  
-  # add a column for lake name
-  processingtable$lknamemv <- rep(tolower(first.word(files[i])), length(processingtable[,1]))
-  
-  # add a column for date YEAR-MO-DA (version 2)
-  processingtable$datemv <- rep(as.character(as.Date(paste(word(sub(" ","-", file_path_sans_ext(files[i])),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
->>>>>>> 01cda813a6cd48d521f467bad89e3fe4d0fa7c09
-                                length(processingtable[,1]))
+  processingtable$datemv <- rep(as.character(as.Date(paste(word(gsub("_","-", file_path_sans_ext(files[i])),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")),length(processingtable[,1]))
   
   # clean up fieldnames
   names(processingtable) <- tidyName(names(processingtable))
@@ -955,14 +841,13 @@ for  (i in c(1:length(files))) {
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
-<<<<<<< HEAD
 # 2018 - AprilLondo ----------------------------------------------------
 
 
 #' ## DNR R3S Surveys:
 
 # set working Dir to sourcefile loc:
-setwd("E:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/April_Londo")
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/April_Londo")
 
 # List file extensions that you'd like to cover
 files = list.files(pattern= "*.xls")# Get the files names for extension j
@@ -1009,26 +894,500 @@ for  (i in c(1:length(files))) {
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
+# 2018 - BrittaBelden ----------------------------------------------------
+
+
+#' ## CRWD Surveys:
+
+# set working Dir to sourcefile loc:
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/Britta Belden")
+
+# List file extensions that you'd like to cover
+files = list.files(pattern= "*.xls")# Get the files names for extension j
+
+# for those files, go through, clean up headings and compile them
+for  (i in c(1:length(files))) {
+  # i = 8
+  # load in survey FILEi, name it processingtable:
+  processingtable <- read_excel(files[i], trim_ws = T)
+  
+  # add a column for datasource and populate with SOURCEi
+  processingtable$datasourcemv <- rep("Britta Belden", length(processingtable[,1]))
+  
+  # add a column for lake name
+  processingtable$lknamemv <- rep(tolower(word(files[i], end = -2,  sep = " ")), length(processingtable[,1]))
+  
+  # add a column for date YEAR-MO-DA (version 2)
+  processingtable$datemv <- rep(as.character(as.Date(paste(word(word(file_path_sans_ext(files[i]), -1),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
+                                length(processingtable[,1]))
+  
+  # clean up fieldnames
+  names(processingtable) <- tidyName(names(processingtable))
+  
+  # drop empty columns (here we make a new object of only the columns with less NAs than the total column length of the table)
+  processingtable <- processingtable[,colSums(is.na(processingtable))<nrow(processingtable)]
+  
+  # name columns with no headings. If all are named, print "no missing names for:"
+  ifelse(sum(names(processingtable) == "") > 0 ,
+         processingtable <- tbl_df(data.frame(processingtable)),
+         print("no missing names for:"))
+  
+  # make all columns into factors before compiling?
+  processingtable[] <- lapply(processingtable[], factor)
+  
+  # save that into the big set
+  ps <- bind_rows(processingtable, ps)
+  
+  # print iteration # and survey name
+  print(c(i,files[i]))
+  
+}
+
+#' Check for input:
+
+nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
+
+# 2018 - Cole Loewen ----------------------------------------------------
+
+
+#' ## Cole Loewen Surveys:
+
+# set working Dir to sourcefile loc:
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/Cole Loewen")
+
+# List file extensions that you'd like to cover
+files = list.files(pattern= "*.xls")# Get the files names for extension j
+
+# for those files, go through, clean up headings and compile them
+for  (i in c(1:length(files))) {
+  # i = 8
+  # load in survey FILEi, name it processingtable:
+  processingtable <- read_excel(files[i], trim_ws = T)
+  
+  # add a column for datasource and populate with SOURCEi
+  processingtable$datasourcemv <- rep("Cole Loewen", length(processingtable[,1]))
+  
+  # add a column for lake name
+  processingtable$lknamemv <- rep(tolower(word(files[i], end = -2,  sep = " ")), length(processingtable[,1]))
+  
+  # add a column for date YEAR-MO-DA (version 2)
+  processingtable$datemv <- rep(as.character(as.Date(paste(word(word(file_path_sans_ext(files[i]), -1),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
+                                length(processingtable[,1]))
+  
+  # clean up fieldnames
+  names(processingtable) <- tidyName(names(processingtable))
+  
+  # drop empty columns (here we make a new object of only the columns with less NAs than the total column length of the table)
+  processingtable <- processingtable[,colSums(is.na(processingtable))<nrow(processingtable)]
+  
+  # name columns with no headings. If all are named, print "no missing names for:"
+  ifelse(sum(names(processingtable) == "") > 0 ,
+         processingtable <- tbl_df(data.frame(processingtable)),
+         print("no missing names for:"))
+  
+  # make all columns into factors before compiling?
+  processingtable[] <- lapply(processingtable[], factor)
+  
+  # save that into the big set
+  ps <- bind_rows(processingtable, ps)
+  
+  # print iteration # and survey name
+  print(c(i,files[i]))
+  
+}
+
+#' Check for input:
+
+nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
+
+# 2018 - Eric Fieldseth ----------------------------------------------------
+
+
+#' ## Eric Fieldseth Surveys:
+
+# set working Dir to sourcefile loc:
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/Eric Fieldseth")
+
+# List file extensions that you'd like to cover
+files = list.files(pattern= "*.xls")# Get the files names for extension j
+
+# for those files, go through, clean up headings and compile them
+for  (i in c(1:length(files))) {
+  # i = 7
+  # load in survey FILEi, name it processingtable:
+  processingtable <- read_excel(files[i], trim_ws = T)
+  
+  # add a column for datasource and populate with SOURCEi
+  processingtable$datasourcemv <- rep("Eric Fieldseth", length(processingtable[,1]))
+  
+  # add a column for lake name
+  processingtable$lknamemv <- rep(tolower(word(files[i], end = -2,  sep = " ")), length(processingtable[,1]))
+  
+  # add a column for date YEAR-MO-DA (version 2)
+  processingtable$datemv <- rep(as.character(as.Date(paste(word(word(file_path_sans_ext(files[i]), -1),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
+                                length(processingtable[,1]))
+  
+  # clean up fieldnames
+  names(processingtable) <- tidyName(names(processingtable))
+  
+  # drop empty columns (here we make a new object of only the columns with less NAs than the total column length of the table)
+  processingtable <- processingtable[,colSums(is.na(processingtable))<nrow(processingtable)]
+  
+  # name columns with no headings. If all are named, print "no missing names for:"
+  ifelse(sum(names(processingtable) == "") > 0 ,
+         processingtable <- tbl_df(data.frame(processingtable)),
+         print("no missing names for:"))
+  
+  # make all columns into factors before compiling?
+  processingtable[] <- lapply(processingtable[], factor)
+  
+  # save that into the big set
+  ps <- bind_rows(processingtable, ps)
+  
+  # print iteration # and survey name
+  print(c(i,files[i]))
+  
+}
+
+#' Check for input:
+
+nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
+
+# 2018 - James Johnson ----------------------------------------------------
+
+
+#' ## Freshwater Scientific Surveys:
+
+# set working Dir to sourcefile loc:
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/James Johnson")
+
+# List file extensions that you'd like to cover
+files = list.files(pattern= "*.xls")# Get the files names for extension j
+
+# for those files, go through, clean up headings and compile them
+for  (i in c(1:length(files))) {
+  # i = 8
+  # load in survey FILEi, name it processingtable:
+  processingtable <- read_excel(files[i], trim_ws = T)
+  
+  # add a column for datasource and populate with SOURCEi
+  processingtable$datasourcemv <- rep("James Johnson", length(processingtable[,1]))
+  
+  # add a column for lake name
+  processingtable$lknamemv <- rep(tolower(word(files[i], end = -2,  sep = " ")), length(processingtable[,1]))
+  
+  # add a column for date YEAR-MO-DA (version 2)
+  processingtable$datemv <- rep(as.character(as.Date(paste(word(word(file_path_sans_ext(files[i]), -1),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
+                                length(processingtable[,1]))
+  
+  # clean up fieldnames
+  names(processingtable) <- tidyName(names(processingtable))
+  
+  # drop empty columns (here we make a new object of only the columns with less NAs than the total column length of the table)
+  processingtable <- processingtable[,colSums(is.na(processingtable))<nrow(processingtable)]
+  
+  # name columns with no headings. If all are named, print "no missing names for:"
+  ifelse(sum(names(processingtable) == "") > 0 ,
+         processingtable <- tbl_df(data.frame(processingtable)),
+         print("no missing names for:"))
+  
+  # make all columns into factors before compiling?
+  processingtable[] <- lapply(processingtable[], factor)
+  
+  # save that into the big set
+  ps <- bind_rows(processingtable, ps)
+  
+  # print iteration # and survey name
+  print(c(i,files[i]))
+  
+}
+
+#' Check for input:
+
+nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
 
 
+# 2018 - Jill Sweet ----------------------------------------------------
+
+
+#' ## MCWD Surveys:
+
+# set working Dir to sourcefile loc:
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/Jill Sweet")
+
+# List file extensions that you'd like to cover
+files = list.files(pattern= "*.xls")# Get the files names for extension j
+
+# for those files, go through, clean up headings and compile them
+for  (i in c(1:length(files))) {
+  # i = 8
+  # load in survey FILEi, name it processingtable:
+  processingtable <- read_excel(files[i], trim_ws = T)
+  
+  # add a column for datasource and populate with SOURCEi
+  processingtable$datasourcemv <- rep("Jill Sweet", length(processingtable[,1]))
+  
+  # add a column for lake name
+  processingtable$lknamemv <- rep(tolower(word(files[i], end = -2,  sep = " ")), length(processingtable[,1]))
+  
+  # add a column for date YEAR-MO-DA (version 2)
+  processingtable$datemv <- rep(as.character(as.Date(paste(word(word(file_path_sans_ext(files[i]), -1),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
+                                length(processingtable[,1]))
+  
+  # clean up fieldnames
+  names(processingtable) <- tidyName(names(processingtable))
+  
+  # drop empty columns (here we make a new object of only the columns with less NAs than the total column length of the table)
+  processingtable <- processingtable[,colSums(is.na(processingtable))<nrow(processingtable)]
+  
+  # name columns with no headings. If all are named, print "no missing names for:"
+  ifelse(sum(names(processingtable) == "") > 0 ,
+         processingtable <- tbl_df(data.frame(processingtable)),
+         print("no missing names for:"))
+  
+  # make all columns into factors before compiling?
+  processingtable[] <- lapply(processingtable[], factor)
+  
+  # save that into the big set
+  ps <- bind_rows(processingtable, ps)
+  
+  # print iteration # and survey name
+  print(c(i,files[i]))
+  
+}
+
+#' Check for input:
+
+nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
+
+
+# 2018 - Mark Ranweiler ----------------------------------------------------
+
+
+#' ## MNDNR R2 N Surveys:
+
+# set working Dir to sourcefile loc:
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/Mark Ranweiler")
+
+# List file extensions that you'd like to cover
+files = list.files(pattern= "*.xls")# Get the files names for extension j
+
+# for those files, go through, clean up headings and compile them
+for  (i in c(1:length(files))) {
+  # i = 8
+  # load in survey FILEi, name it processingtable:
+  processingtable <- read_excel(files[i], trim_ws = T)
+  
+  # add a column for datasource and populate with SOURCEi
+  processingtable$datasourcemv <- rep("Mark Ranweiler", length(processingtable[,1]))
+  
+  # add a column for lake name
+  processingtable$lknamemv <- rep(tolower(word(files[i], end = -2,  sep = " ")), length(processingtable[,1]))
+  
+  # add a column for date YEAR-MO-DA (version 2)
+  processingtable$datemv <- rep(as.character(as.Date(paste(word(word(file_path_sans_ext(files[i]), -1),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
+                                length(processingtable[,1]))
+  
+  # clean up fieldnames
+  names(processingtable) <- tidyName(names(processingtable))
+  
+  # drop empty columns (here we make a new object of only the columns with less NAs than the total column length of the table)
+  processingtable <- processingtable[,colSums(is.na(processingtable))<nrow(processingtable)]
+  
+  # name columns with no headings. If all are named, print "no missing names for:"
+  ifelse(sum(names(processingtable) == "") > 0 ,
+         processingtable <- tbl_df(data.frame(processingtable)),
+         print("no missing names for:"))
+  
+  # make all columns into factors before compiling?
+  processingtable[] <- lapply(processingtable[], factor)
+  
+  # save that into the big set
+  ps <- bind_rows(processingtable, ps)
+  
+  # print iteration # and survey name
+  print(c(i,files[i]))
+  
+}
+
+#' Check for input:
+
+nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
+
+# 2018 - Matt Berg ----------------------------------------------------
+
+
+#' ## Endangered Resource Services LLC Surveys:
+
+# set working Dir to sourcefile loc:
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/Matt Berg")
+
+# List file extensions that you'd like to cover
+files = list.files(pattern= "*.xls")# Get the files names for extension j
+
+# for those files, go through, clean up headings and compile them
+for  (i in c(1:length(files))) {
+  # i = 8
+  # load in survey FILEi, name it processingtable:
+  processingtable <- read_excel(files[i], trim_ws = T)
+  
+  # add a column for datasource and populate with SOURCEi
+  processingtable$datasourcemv <- rep("Matt Berg", length(processingtable[,1]))
+  
+  # add a column for lake name
+  processingtable$lknamemv <- rep(tolower(word(files[i], end = -2,  sep = " ")), length(processingtable[,1]))
+  
+  # add a column for date YEAR-MO-DA (version 2)
+  processingtable$datemv <- rep(as.character(as.Date(paste(word(word(file_path_sans_ext(files[i]), -1),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
+                                length(processingtable[,1]))
+  
+  # clean up fieldnames
+  names(processingtable) <- tidyName(names(processingtable))
+  
+  # drop empty columns (here we make a new object of only the columns with less NAs than the total column length of the table)
+  processingtable <- processingtable[,colSums(is.na(processingtable))<nrow(processingtable)]
+  
+  # name columns with no headings. If all are named, print "no missing names for:"
+  ifelse(sum(names(processingtable) == "") > 0 ,
+         processingtable <- tbl_df(data.frame(processingtable)),
+         print("no missing names for:"))
+  
+  # make all columns into factors before compiling?
+  processingtable[] <- lapply(processingtable[], factor)
+  
+  # save that into the big set
+  ps <- bind_rows(processingtable, ps)
+  
+  # print iteration # and survey name
+  print(c(i,files[i]))
+  
+}
+
+#' Check for input:
+
+nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
+
+# 2018 - Meg Rattei ----------------------------------------------------
+
+
+#' ## Barr Engineering Surveys:
+
+# set working Dir to sourcefile loc:
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/Meg Rattei")
+
+# List file extensions that you'd like to cover
+files = list.files(pattern= "*.xls")# Get the files names for extension j
+
+# for those files, go through, clean up headings and compile them
+for  (i in c(1:length(files))) {
+  # i = 8
+  # load in survey FILEi, name it processingtable:
+  processingtable <- read_excel(files[i], trim_ws = T)
+  
+  # add a column for datasource and populate with SOURCEi
+  processingtable$datasourcemv <- rep("Meg Rattei", length(processingtable[,1]))
+  
+  # add a column for lake name
+  processingtable$lknamemv <- rep(tolower(word(files[i], end = -2,  sep = " ")), length(processingtable[,1]))
+  
+  # add a column for date YEAR-MO-DA (version 2)
+  processingtable$datemv <- rep(as.character(as.Date(paste(word(word(file_path_sans_ext(files[i]), -1),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
+                                length(processingtable[,1]))
+  
+  # clean up fieldnames
+  names(processingtable) <- tidyName(names(processingtable))
+  
+  # drop empty columns (here we make a new object of only the columns with less NAs than the total column length of the table)
+  processingtable <- processingtable[,colSums(is.na(processingtable))<nrow(processingtable)]
+  
+  # name columns with no headings. If all are named, print "no missing names for:"
+  ifelse(sum(names(processingtable) == "") > 0 ,
+         processingtable <- tbl_df(data.frame(processingtable)),
+         print("no missing names for:"))
+  
+  # make all columns into factors before compiling?
+  processingtable[] <- lapply(processingtable[], factor)
+  
+  # save that into the big set
+  ps <- bind_rows(processingtable, ps)
+  
+  # print iteration # and survey name
+  print(c(i,files[i]))
+  
+}
+
+#' Check for input:
+
+nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
+
+# 2018 - Rob Brown ----------------------------------------------------
+
+
+#' ## Minneapolis Parks Surveys:
+
+# set working Dir to sourcefile loc:
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/input/contributor_data/2018_submissions/Rob Brown")
+
+# List file extensions that you'd like to cover
+files = list.files(pattern= "*.xls")# Get the files names for extension j
+
+# for those files, go through, clean up headings and compile them
+for  (i in c(1:length(files))) {
+  # i = 8
+  # load in survey FILEi, name it processingtable:
+  processingtable <- read_excel(files[i], trim_ws = T)
+  
+  # add a column for datasource and populate with SOURCEi
+  processingtable$datasourcemv <- rep("Rob Brown", length(processingtable[,1]))
+  
+  # add a column for lake name
+  processingtable$lknamemv <- rep(tolower(word(files[i], end = -2,  sep = " ")), length(processingtable[,1]))
+  
+  # add a column for date YEAR-MO-DA (version 2)
+  processingtable$datemv <- rep(as.character(as.Date(paste(word(word(file_path_sans_ext(files[i]), -1),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
+                                length(processingtable[,1]))
+  
+  # clean up fieldnames
+  names(processingtable) <- tidyName(names(processingtable))
+  
+  # drop empty columns (here we make a new object of only the columns with less NAs than the total column length of the table)
+  processingtable <- processingtable[,colSums(is.na(processingtable))<nrow(processingtable)]
+  
+  # name columns with no headings. If all are named, print "no missing names for:"
+  ifelse(sum(names(processingtable) == "") > 0 ,
+         processingtable <- tbl_df(data.frame(processingtable)),
+         print("no missing names for:"))
+  
+  # make all columns into factors before compiling?
+  processingtable[] <- lapply(processingtable[], factor)
+  
+  # save that into the big set
+  ps <- bind_rows(processingtable, ps)
+  
+  # print iteration # and survey name
+  print(c(i,files[i]))
+  
+}
+
+#' Check for input:
+
+nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
 
 
+# progress checkpoint -----------------------------------------------------
 
 
-
-
-
-
-
-
-##################################################################
-
+# save progress as a .csv file in output data folder  
+# write.csv(ps, file = "data/output/clp_proj_surveys.csv", row.names = F)    
+# Set working directory back to project location
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")  
+ps <- fread(file = "data/output/clp_proj_surveys.csv")
 
 # add DOW ids to new data -------------------------------------------------
 
-setwd("E:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")
 
 dow18 <- fread(file = "data/input/Data Import Progress - 2018 Entry.csv")
 
@@ -1037,11 +1396,41 @@ str(dow18)
 dow18[ , survey_contributor := as.factor(survey_contributor),]
 
 levels(dow18$survey_contributor)
-=======
-##################################################################
+
+unique(ps$datasourcemv)
+
+match( levels(dow18$survey_contributor), unique(ps$datasourcemv))
+
+dow18[ , "survey_date(m-d-yyyy)" := as.Date(`survey_date(m-d-yyyy)`, "%m-%d-%Y" ),  ]
+
+dow18[ , .(`survey_date(m-d-yyyy)`), ]
+
+names(dow18)[5] <- "survey_date"
+
+summary(dow18)
+summary(ps$dowid)
+
+# check lake name matches?
+A <- sort(unique(dow18$survey_lake))
+B <- sort(unique(ps$lknamemv))
+B[is.na(match(B,A))==T]
+
+#' We'll grab these dow numbers manually:
+# make DOW table from Adam's data and add in the missing DOWs:
+DOW <- AKdat[ ,.N, by = .(Lake.ID,Lake.x) ]
+missingdow <- data.table(Lake.x = B[is.na(match(B,A))==T], 
+                         Lake.ID = c("10001200", "06000200", "27009501", "10000600", "02000300", "18038600", "27013322", "27013338"), N = NA)
+
+DOWIds <- rbind(DOW, missingdow)
+
+merge(head(ps), DOWIds, by.x = "lknamemv", by.y = "Lake.x")
+
+match(ps$lknamemv, DOWIds$Lake.x)
+dows <- DOWIds[match(ps[,lknamemv,], DOWIds[,Lake.x,]),Lake.ID]
+
+ps[ , dowid := dows  ,  ]
 
 
->>>>>>> 01cda813a6cd48d521f467bad89e3fe4d0fa7c09
 
 #####
 
