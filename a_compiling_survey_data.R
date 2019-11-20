@@ -106,7 +106,7 @@ ps <- data.table(NULL)
      
 #' Check for input:
   
-  # Original ps has 1 row (NAs) + brasch has 88 surveys, should see 1 + 88 = 89 unique combinations of data source, lake, survey date.
+  # brasch has 88 surveys, 88 unique combinations of data source, lake, survey date.
   nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
 
@@ -166,7 +166,7 @@ ps <- data.table(NULL)
      }
      
 #' Check for input: 
-      # (1 row original, 88 from brasch,  104 from dustin should give 193 total)
+      # (88 from brasch,  104 from dustin should give 192 total)
       nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
 
@@ -228,7 +228,7 @@ ps <- data.table(NULL)
      }
      
 #' Check for input:
-    # (193 prior, 12 in fieldseth = 205)
+    # (192 prior, 12 in fieldseth = 204)
     nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
 
@@ -287,7 +287,7 @@ ps <- data.table(NULL)
      }
      
 #' Check for input 
-      # (205 prior, 85 in johnson = 290)
+      # (204 prior, 85 in johnson = 289)
       nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
      
  
@@ -347,7 +347,7 @@ ps <- data.table(NULL)
  }
  
  #' Check for input 
-   # (290 prior, 3 in lund = 293)
+   # (289 prior, 3 in lund = 292)
    nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
  
       
@@ -412,7 +412,7 @@ ps <- data.table(NULL)
         }
  
  #' Check for input 
-     # (293 prior, 112 in mccomas = 405)
+     # (292 prior, 112 in mccomas = 404)
      nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
  
  
@@ -480,7 +480,7 @@ ps <- data.table(NULL)
              }
      
      #' Check for input 
-     # (405 prior, 121 in newman = 526)
+     # (404 prior, 121 in newman = 525)
      nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))   
 
 
@@ -539,7 +539,7 @@ ps <- data.table(NULL)
              }
      
      #' Check for input 
-     # (526 prior, 30 in sblood = 556)
+     # (525 prior, 30 in sblood = 555)
      nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))   
      
     
@@ -601,7 +601,7 @@ ps <- data.table(NULL)
          }
      
      #' Check for input 
-     # (556 prior, 19 in CRWD = 575)
+     # (555 prior, 19 in CRWD = 574)
      nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))   
      
     
@@ -641,8 +641,8 @@ names(ps[,which(as.vector(colSums(is.na(ps)) == nrow(ps)))])
 # save progress as a .csv file in output data folder  
 # write.csv(ps, file = "G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation/data/output/clp_proj_surveys.csv", row.names = F)    
 # Set working directory back to project location
-setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")  
-ps <- fread(file = "data/output/clp_proj_surveys.csv")
+# setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")  
+# ps <- fread(file = "data/output/clp_proj_surveys.csv")
 
 
 
@@ -784,7 +784,7 @@ for  (i in c(1:length(files))) {
   
 }
 
-#' Check for input:
+#' Check for input 120 surveys:
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
@@ -837,7 +837,7 @@ for  (i in c(1:length(files))) {
   
 }
 
-#' Check for input:
+#' Check for input 683+51 = 734:
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
@@ -890,7 +890,7 @@ for  (i in c(1:length(files))) {
   
 }
 
-#' Check for input:
+#' Check for input 734+98=832:
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
@@ -943,7 +943,7 @@ for  (i in c(1:length(files))) {
   
 }
 
-#' Check for input:
+#' Check for input 832+9=841:
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
@@ -996,7 +996,7 @@ for  (i in c(1:length(files))) {
   
 }
 
-#' Check for input:
+#' Check for input 841+3=844:
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
@@ -1049,7 +1049,7 @@ for  (i in c(1:length(files))) {
   
 }
 
-#' Check for input:
+#' Check for input 844+8=852:
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
@@ -1102,7 +1102,7 @@ for  (i in c(1:length(files))) {
   
 }
 
-#' Check for input:
+#' Check for input 852+85=937 :
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
@@ -1157,7 +1157,7 @@ for  (i in c(1:length(files))) {
   
 }
 
-#' Check for input:
+#' Check for input 937+102:
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
@@ -1211,7 +1211,7 @@ for  (i in c(1:length(files))) {
   
 }
 
-#' Check for input:
+#' Check for input 1039+17=1056:
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
@@ -1264,7 +1264,7 @@ for  (i in c(1:length(files))) {
   
 }
 
-#' Check for input:
+#' Check for input 1056+7=1063:
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
@@ -1317,7 +1317,7 @@ for  (i in c(1:length(files))) {
   
 }
 
-#' Check for input:
+#' Check for input 1063+63:
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
@@ -1370,7 +1370,7 @@ for  (i in c(1:length(files))) {
   
 }
 
-#' Check for input:
+#' Check for input 1126+9=1135:
 
 nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
@@ -1380,10 +1380,11 @@ nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
 
 # save progress as a .csv file in output data folder  
-# write.csv(ps, file = "data/output/clp_proj_surveys.csv", row.names = F)    
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")
+# write.csv(ps, file = "data/output/clp_2018_surveys.csv", row.names = F)    
 # Set working directory back to project location
 setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")  
-ps <- fread(file = "data/output/clp_proj_surveys.csv")
+# ps <- fread(file = "data/output/clp_2018_surveys.csv")
 
 # add DOW ids to new data -------------------------------------------------
 
@@ -1413,15 +1414,9 @@ summary(ps$dowid)
 # check lake name matches?
 A <- sort(unique(dow18$survey_lake))
 B <- sort(unique(ps$lknamemv))
-B[is.na(match(B,A))==T]
+B[is.na(match(B,A))==T ]
 
-#' We'll grab these dow numbers manually:
-# make DOW table from Adam's data and add in the missing DOWs:
-DOW <- AKdat[ ,.N, by = .(Lake.ID,Lake.x) ]
-missingdow <- data.table(Lake.x = B[is.na(match(B,A))==T], 
-                         Lake.ID = c("10001200", "06000200", "27009501", "10000600", "02000300", "18038600", "27013322", "27013338"), N = NA)
 
-DOWIds <- rbind(DOW, missingdow)
 
 merge(head(ps), DOWIds, by.x = "lknamemv", by.y = "Lake.x")
 
