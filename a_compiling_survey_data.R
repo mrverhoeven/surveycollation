@@ -756,7 +756,7 @@ for  (i in c(1:length(files))) {
   processingtable$datasourcemv <- rep("Allison Gamble", length(processingtable[,1]))
   
   # add a column for lake name
-  processingtable$lknamemv <- rep(tolower(word(files[i], sep = " ")), length(processingtable[,1]))
+  processingtable$lknamemv <- rep(tolower(word(files[i], end = -2,  sep = " ")), length(processingtable[,1]))
   
   # add a column for date YEAR-MO-DA (version 2)
   processingtable$datemv <- rep(as.character(as.Date(paste(word(sub(" ","-", file_path_sans_ext(files[i])),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
@@ -810,7 +810,7 @@ for  (i in c(1:length(files))) {
   processingtable$datasourcemv <- rep("Andrea Prichard", length(processingtable[,1]))
   
   # add a column for lake name
-  processingtable$lknamemv <- rep(tolower(word(files[i], sep = "_")), length(processingtable[,1]))
+  processingtable$lknamemv <- rep(tolower(word(files[i], end = -3,  sep = "_")), length(processingtable[,1]))
   
   # add a column for date YEAR-MO-DA (version 2)
   processingtable$datemv <- rep(as.character(as.Date(paste(word(gsub("_","-", file_path_sans_ext(files[i])),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")),length(processingtable[,1]))
@@ -1383,49 +1383,80 @@ nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")
 # write.csv(ps, file = "data/output/clp_2018_surveys.csv", row.names = F)    
 # Set working directory back to project location
-setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")  
 # ps <- fread(file = "data/output/clp_2018_surveys.csv")
 
 # add DOW ids to new data -------------------------------------------------
-
-setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")
-
 dow18 <- fread(file = "data/input/Data Import Progress - 2018 Entry.csv")
-
 str(dow18)
 
+# validate matches on survey contributor names -- Greg Graske surveys were dropped for no dates
 dow18[ , survey_contributor := as.factor(survey_contributor),]
-
 levels(dow18$survey_contributor)
-
 unique(ps$datasourcemv)
-
 match( levels(dow18$survey_contributor), unique(ps$datasourcemv))
 
+# clean up dates
 dow18[ , "survey_date(m-d-yyyy)" := as.Date(`survey_date(m-d-yyyy)`, "%m-%d-%Y" ),  ]
-
 dow18[ , .(`survey_date(m-d-yyyy)`), ]
-
 names(dow18)[5] <- "survey_date"
 
-summary(dow18)
-summary(ps$dowid)
+#' for matching data contributor names, we want to check lake names matches.
+sort(unique(dow18$survey_lake))
+dow18[ , survey_lake  := tolower(survey_lake),]
+# clean up lake names to improve matches
+dow18[, survey_lake:= gsub("lake", "", survey_lake) , ]
+dow18[ , survey_lake := trimws(survey_lake, which = "both")]
 
-# check lake name matches?
-A <- sort(unique(dow18$survey_lake))
-B <- sort(unique(ps$lknamemv))
-B[is.na(match(B,A))==T ]
+sort(unique(ps$lknamemv))
+ps[ ,lknamemv := gsub("lake", "", lknamemv), ]
+ps[ ,lknamemv := trimws(lknamemv, which = "both"), ]
+
+#bald eagle has a bad dow--
+dow18[survey_lake == "bald eagle", survey_dow:="62000200"]
+
+sort(unique(ps[is.na(dowid) == T, lknamemv,]))
+sort(unique(dow18$survey_lake))
+
+unmatched <- match(sort(unique(ps[is.na(dowid) == T, lknamemv,])),
+      sort(unique(dow18$survey_lake))
+      )
+#need to nab these lake dows manually:
+sort(unique(ps[is.na(dowid) == T, lknamemv,]))[is.na(unmatched)]
+
+#coal and crookneck are not in 2018 data
+#east?
+ps[lknamemv =="east" , .(lknamemv,datemv,datasourcemv),]
 
 
 
-merge(head(ps), DOWIds, by.x = "lknamemv", by.y = "Lake.x")
 
-match(ps$lknamemv, DOWIds$Lake.x)
-dows <- DOWIds[match(ps[,lknamemv,], DOWIds[,Lake.x,]),Lake.ID]
+# surveys in ps with no associated dow (yet)
+A <- ps[is.na(dowid) == T ]
 
-ps[ , dowid := dows  ,  ]
+# surveys in data import list 
+B <- dow18[,.(survey_lake, survey_contributor, survey_dow, survey_date),]
 
+A[] <- lapply(A[], as.character)
+B[] <- lapply(B[], as.character)
 
+C <- merge( A, B, by.x = c("lknamemv", "datasourcemv","datemv"), by.y = c("survey_lake", "survey_contributor","survey_date"), all.x = T)
+
+#drop extras from C
+C[ , c("dowid", "N.x", "N.y"):= NULL, ]
+#zumbra shows up twice, so drop one
+# C <- C[ lknamemv != "zumbra" | datasourcemv != "Jill Sweet", ,]
+
+ps <- merge( ps, B, by.x = c("lknamemv", "datasourcemv","datemv"), by.y = c("survey_lake", "survey_contributor","survey_date"), all.x = T)
+
+ps[is.na(dowid) == T & is.na(survey_dow)==F , dowid := as.character(survey_dow), ]
+
+ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)]
+
+unique(ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)][, as.character(lknamemv),])
+
+unique(sort(dow18[,survey_lake,]))
+
+ps[lknamemv == "big marine", .N,.(lknamemv, datasourcemv, dowid, datemv) ]
 
 #####
 
