@@ -748,7 +748,7 @@ files = list.files(pattern= "*.xls")# Get the files names for extension j
 
 # for those files, go through, clean up headings and compile them
 for  (i in c(1:length(files))) {
-  # i = 113
+  # i = 40
   # load in survey FILEi, name it processingtable:
   processingtable <- read_excel(files[i], trim_ws = T)
   
@@ -759,7 +759,7 @@ for  (i in c(1:length(files))) {
   processingtable$lknamemv <- rep(tolower(word(files[i], end = -2,  sep = " ")), length(processingtable[,1]))
   
   # add a column for date YEAR-MO-DA (version 2)
-  processingtable$datemv <- rep(as.character(as.Date(paste(word(sub(" ","-", file_path_sans_ext(files[i])),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
+  processingtable$datemv <- rep(as.character(as.Date(paste(word(word(file_path_sans_ext(files[i]), -1),c(-1,-3,-2), sep = "-"), collapse = "-"), "%Y-%m-%d")), 
                                 length(processingtable[,1]))
   
   # clean up fieldnames
@@ -1385,7 +1385,9 @@ setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollati
 # Set working directory back to project location
 # ps <- fread(file = "data/output/clp_2018_surveys.csv")
 
-# add DOW ids to new data -------------------------------------------------
+# append DOW numbers -------------------------------------------------
+
+
 dow18 <- fread(file = "data/input/Data Import Progress - 2018 Entry.csv")
 str(dow18)
 
@@ -1400,7 +1402,7 @@ dow18[ , "survey_date(m-d-yyyy)" := as.Date(`survey_date(m-d-yyyy)`, "%m-%d-%Y" 
 dow18[ , .(`survey_date(m-d-yyyy)`), ]
 names(dow18)[5] <- "survey_date"
 
-#' for matching data contributor names, we want to check lake names matches.
+#' we want to check lake names matches.
 sort(unique(dow18$survey_lake))
 dow18[ , survey_lake  := tolower(survey_lake),]
 # clean up lake names to improve matches
@@ -1413,44 +1415,167 @@ ps[ ,lknamemv := trimws(lknamemv, which = "both"), ]
 
 #bald eagle has a bad dow--
 dow18[survey_lake == "bald eagle", survey_dow:="62000200"]
+#kesler should be keslers
+dow18[survey_lake == "kesler pond", survey_lake:="keslers pond"]
+#louisa
+dow18[survey_lake == "lousia", survey_lake := "louisa"]
+dow18[survey_lake == "n. lundstern", survey_lake := "n. lundsten"]
+dow18[survey_lake == "roemhildts", survey_lake := "roemhildt"]
+ps[lknamemv == "roemhildts", lknamemv := "roemhildt"]
+dow18[survey_lake == "saunders- west", survey_lake := "saunders-west"]
+ps[lknamemv == "wassermann", lknamemv := "wasserman"]
+dow18[survey_lake=="wolfeld", survey_lake := "wolsfeld"]
 
+# what lakes in ps are unlabelled with dows
 sort(unique(ps[is.na(dowid) == T, lknamemv,]))
-sort(unique(dow18$survey_lake))
+sort(unique(dow18$survey_lake)) #any matches in dow18 set
 
-unmatched <- match(sort(unique(ps[is.na(dowid) == T, lknamemv,])),
+matched <- match(sort(unique(ps[is.na(dowid) == T, lknamemv,])),
       sort(unique(dow18$survey_lake))
       )
 #need to nab these lake dows manually:
-sort(unique(ps[is.na(dowid) == T, lknamemv,]))[is.na(unmatched)]
+sort(unique(ps[is.na(dowid) == T, lknamemv,]))[is.na(matched)]
 
-#coal and crookneck are not in 2018 data
-#east?
-ps[lknamemv =="east" , .(lknamemv,datemv,datasourcemv),]
+#coal and crookneck are not in 2018 data but are johnson surveys
+ps[lknamemv =="coal" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv =="coal" , dowid := 77004600]
+ps[lknamemv =="crookneck" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv =="crookneck" , dowid := 49013300]
+#julia?
+ps[lknamemv =="julia" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv =="julia" , dowid := 71014500]
+#long
+ps[lknamemv == "long mahtomedi", lknamemv:= "long"]
+#lowermission
+ps[lknamemv =="lowermission" , dowid := 18024300]
+#tonka these names are skate-y so I'll punch them out manually rather than rely on the dows put together by the techs (no offense, techs!):
+ps[lknamemv == "minnetonka grays bay" | lknamemv== "minnetonka north arm" |
+     lknamemv == "grays" | lknamemv == "northarm", .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv == "minnetonka grays bay" |
+     lknamemv == "grays" , dowid := 27013301]
+ps[lknamemv == "minnetonka north arm" |
+     lknamemv == "northarm" , dowid := 27013318]
+#rush
+ps[lknamemv=="rush", dowid := 71014700]
+#vails?
+ps[lknamemv =="vails" ,dowid:= 73015100]
+#weaver
+ps[lknamemv =="weaver" , dowid := 27011700]
+
+#all issues solved:
+matched <- match(sort(unique(ps[is.na(dowid) == T, lknamemv,])),
+                 sort(unique(dow18$survey_lake))
+)
+sort(unique(ps[is.na(dowid) == T, lknamemv,]))[is.na(matched)]
 
 
 
+#merge dow18 do vals into ps
 
-# surveys in ps with no associated dow (yet)
-A <- ps[is.na(dowid) == T ]
+str(dow18)
+str(ps[ , .("lknamemv", "datasourcemv","datemv",dowid)])
 
-# surveys in data import list 
-B <- dow18[,.(survey_lake, survey_contributor, survey_dow, survey_date),]
+dow18[ , datemv:=as.character(survey_date)]
+dow18[ , lknamemv := as.character(survey_lake)]
+dow18[ , datasourcemv := as.character(survey_contributor)]
 
-A[] <- lapply(A[], as.character)
-B[] <- lapply(B[], as.character)
+#drop dow18 lines incomplete for these 4
+dow18 <- dow18[ , .(datemv, lknamemv, datasourcemv, survey_dow) ,]
+dow18[ , survey_dow:=as.integer(survey_dow)]
+dow18 <- dow18[complete.cases(dow18), , ]
 
-C <- merge( A, B, by.x = c("lknamemv", "datasourcemv","datemv"), by.y = c("survey_lake", "survey_contributor","survey_date"), all.x = T)
+# ps <- merge( ps, dow18, by = c("lknamemv", "datasourcemv","datemv"), all.x = T)
+# copy <- ps
+# dt version:
+setkeyv(ps, c("lknamemv", "datasourcemv","datemv") )
+setkeyv(dow18, c("lknamemv", "datasourcemv","datemv"))
 
-#drop extras from C
-C[ , c("dowid", "N.x", "N.y"):= NULL, ]
-#zumbra shows up twice, so drop one
-# C <- C[ lknamemv != "zumbra" | datasourcemv != "Jill Sweet", ,]
+ps[dow18 , dow18:= i.survey_dow]
 
-ps <- merge( ps, B, by.x = c("lknamemv", "datasourcemv","datemv"), by.y = c("survey_lake", "survey_contributor","survey_date"), all.x = T)
+summary(as.integer(ps$dow18))
 
-ps[is.na(dowid) == T & is.na(survey_dow)==F , dowid := as.character(survey_dow), ]
+ #now check coverage and drop dows from dow18 into the dow column then delete extra cols
+summary(ps[ , .(dowid, dow18) , ])
+ps[is.na(dowid), .N , c("lknamemv", "datasourcemv","datemv")]
 
+#assign dow to the dowid column
+ps[is.na(dowid) == T & is.na(dow18)==F , dowid := dow18, ]
+
+# add in any missing dows manually ----------------------------------------
+
+#fix the last few manually
 ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)]
+
+#benton
+ps[lknamemv=="benton", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="benton", dowid:= 41004300]
+#big marine
+ps[lknamemv=="big marine", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="big marine", dowid:= 82005200]
+#big sob
+ps[lknamemv=="big sob", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="big sob", dowid:= 27009999]# big sob does not have a dow that I can find
+#brownie
+ps[lknamemv=="brownie", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="brownie", dowid:= 27003800]
+#calhoun
+ps[lknamemv=="calhoun", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="calhoun", dowid:= 27003100]
+#cedar
+ps[lknamemv=="cedar", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="cedar" & datasourcemv == "Allison Gamble" , dowid:= 66005200]
+ps[lknamemv=="cedar" & datasourcemv == "Allison Gamble" , datemv:= "2014-07-17"]
+ps[lknamemv=="cedar" & datasourcemv == "Rob Brown" , dowid:= 27003900]
+#christmas
+ps[lknamemv=="christmas", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="christmas", dowid := 27013700]
+#fish
+ps[lknamemv=="fish", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="fish" & datasourcemv == "James Johnson", dowid := 70006900]
+#harriet
+ps[lknamemv=="harriet", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="harriet" , dowid := 27001600]
+#island
+ps[lknamemv=="island", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="island" , dowid := 62007500]
+ps[lknamemv=="island" & is.na(datemv)==T , datemv := "2010-05-17"]
+#isles
+ps[lknamemv=="isles", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="isles" , dowid := 27004000]
+#loring
+ps[lknamemv=="loring", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="loring" , dowid := 27065500]
+#medicine
+ps[lknamemv=="medicine", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="medicine" , dowid := 27010400]
+#rebecca
+ps[lknamemv=="rebecca", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="rebecca" , dowid := 27019200]
+#sakatah bay
+ps[lknamemv=="sakatah bay", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="sakatah bay" , dowid := 40000201]
+#wirth
+ps[lknamemv=="wirth", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="wirth" , dowid := 27003700]
+
+# any surveys missing dows?
+ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)]
+
+
+
+# progress checkpoint -----------------------------------------------------
+# save progress as a .csv file in output data folder  
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")
+# write.csv(ps, file = "data/output/clp_2018dow_surveys.csv", row.names = F)    
+# Set working directory back to project location
+# ps <- fread(file = "data/output/clp_2018_surveys.csv")
+
+
+###########################
+
+
+
+
 
 unique(ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)][, as.character(lknamemv),])
 
