@@ -1,6 +1,3 @@
-# header ------------------------------------------------------------------
-
-
 #'---
 #' title: "Compiling stakeholder PI data"
 #' author: "Mike Verhoeven"
@@ -19,7 +16,7 @@
 #' in with a dataset, that column is retained. In this way, all submitted 
 #' surveys are assembled into a single dataset. 
 
-
+# load libraries ------------------------------------------------------------------
 #' ## Document Preamble
 #+ warning = FALSE
 
@@ -50,13 +47,13 @@
   # extra commas from the above unite function
   TrimMult <- function(x, char=" ") {return(gsub(paste0("^", char, "*|(?<=", char, ")", char, "|", char, "*$"),"", x, perl=T))}
 
+
+
+# CLP - Brasch ------------------------------------------------------------
   
 #' "ps" (point scale) will be our dataset. Let's fill er' up!
 
 ps <- data.table(NULL)
-
-# CLP - Brasch ------------------------------------------------------------
-
   
   #' ## Brasch Surveys:
 
@@ -1974,17 +1971,16 @@ dow19[ , survey_contributor:=  as.factor(paste(survey_contributor,"19",sep = "_"
 levels(dow19$survey_contributor)
 unique(ps[ , datasourcemv,])
 match( unique(dow19$survey_contributor), unique(ps$datasourcemv))
-dow19 <- dow19[survey_contributor!= "_19"]
-
+dow19 <- dow19[survey_contributor!= "_19"] #drop lines that had no labeled datsource
 
 # clean up dates
 dow19[ , "survey_date(m-d-yyyy)" := as.Date(`survey_date(m-d-yyyy)`, "%m-%d-%Y" ),  ]
 dow19[ , .(`survey_date(m-d-yyyy)`), ]
 names(dow19)[5] <- "survey_date"
 
-dow19 <- dow19[is.na(survey_date)==F]
+dow19 <- dow19[is.na(survey_date)==F] #keep only rows with dates
 dow19[, survey_dow:=as.integer(survey_dow)]
-dow19 <- dow19[is.na(survey_dow)==F]
+dow19 <- dow19[is.na(survey_dow)==F] #keep only rows with dows (why retain a row if it doesn't have the data we are fishing for?)
 
 
 #' we want to check lake names matches.
@@ -2000,138 +1996,274 @@ ps[ ,lknamemv := trimws(lknamemv, which = "both"), ]
 
 # what lakes in ps are unlabelled with dows
 sort(unique(ps[is.na(dowid) == T, lknamemv,]))
-sort(unique(dow19$survey_lake)) #any matches in dow18 set
+sort(unique(dow19$survey_lake)) #any matches in dow19 set
 
 matched <- match(sort(unique(ps[is.na(dowid) == T, lknamemv,])),
-                 sort(unique(dow18$survey_lake))
+                 sort(unique(dow19$survey_lake))
 )
+
+
 #need to nab these lake dows manually:
 sort(unique(ps[is.na(dowid) == T, lknamemv,]))[is.na(matched)]
 
-#coal and crookneck are not in 2018 data but are johnson surveys
-ps[lknamemv =="coal" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
-ps[lknamemv =="coal" , dowid := 77004600]
-ps[lknamemv =="crookneck" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
-ps[lknamemv =="crookneck" , dowid := 49013300]
-#julia?
-ps[lknamemv =="julia" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
-ps[lknamemv =="julia" , dowid := 71014500]
-#long
-ps[lknamemv == "long mahtomedi", lknamemv:= "long"]
-#lowermission
-ps[lknamemv =="lowermission" , dowid := 18024300]
-#tonka these names are skate-y so I'll punch them out manually rather than rely on the dows put together by the techs (no offense, techs!):
-ps[lknamemv == "minnetonka grays bay" | lknamemv== "minnetonka north arm" |
-     lknamemv == "grays" | lknamemv == "northarm", .N,.(lknamemv,datemv,datasourcemv, dowid)]
-ps[lknamemv == "minnetonka grays bay" |
-     lknamemv == "grays" , dowid := 27013301]
-ps[lknamemv == "minnetonka north arm" |
-     lknamemv == "northarm" , dowid := 27013318]
-#rush
-ps[lknamemv=="rush", dowid := 71014700]
-#vails?
-ps[lknamemv =="vails" ,dowid:= 73015100]
-#weaver
-ps[lknamemv =="weaver" , dowid := 27011700]
+ps[datasourcemv =="April Londo_19" , .N,.(lknamemv,datemv,datasourcemv, dowid)] #a bunch of the R3 surveys are incorrect b/c natalie did not transpose them 
+ps <- ps[datasourcemv !="April Londo_19" , , ]
 
-#all issues solved:
 matched <- match(sort(unique(ps[is.na(dowid) == T, lknamemv,])),
-                 sort(unique(dow18$survey_lake))
+                 sort(unique(dow19$survey_lake))
 )
+#need to nab these lake dows manually:
+needDOW <- sort(unique(ps[is.na(dowid) == T, lknamemv,]))[is.na(matched)]
+
+#east auburn
+ps[lknamemv =="east auburn" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv =="east auburn" , dowid := 10004402]
+#"east phelps bay"
+ps[lknamemv =="east phelps bay" | lknamemv == "phelps bay" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv =="east phelps bay" | lknamemv == "phelps bay" , dowid := 27013300]
+#east battle lk
+ps[lknamemv =="eastbattle" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv =="eastbattle" , dowid := 56013800]
+#"gideons bay"
+ps[lknamemv =="gideons bay" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv =="gideons bay"  , dowid := 27013331]
+#more minnetonka
+ps[lknamemv == "grays bay" | lknamemv== "stalbansbay" | lknamemv == "northarmbay", .N,.(lknamemv,datemv,datasourcemv, dowid)]
+#grays
+ps[lknamemv == "grays bay", dowid := 27013301]
+ps[lknamemv == "grays bay", lknamemv := "grays"]
+#stalbans
+ps[lknamemv == "stalbansbay", dowid := 27013304]
+ps[lknamemv == "stalbansbay", lknamemv := "st albans"]
+#northarm
+ps[lknamemv == "northarmbay", dowid := 27013313]
+ps[lknamemv == "northarmbay", lknamemv := "north arm"]
+#"grey cloud slough"
+ps[lknamemv =="grey cloud slough" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv =="grey cloud slough" , dowid := 19000500]
+#""marsh""
+ps[lknamemv =="marsh" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv =="marsh" , dowid := 10005400]
+#"mud"
+ps[lknamemv =="mud" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv =="mud" , dowid := 27018600]
+#"north lundsten"
+ps[lknamemv =="north lundsten" | lknamemv == "n. lundsten", .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv =="north lundsten" , dowid := 10004300]
+#"parley"
+ps[lknamemv =="parley" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv =="parley" , dowid := 10004200]
+#pulaski
+ps[lknamemv =="pulaski" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv =="pulaski" , dowid := 	86005300]
+#ricemarsh
+ps[lknamemv =="ricemarsh" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv =="ricemarsh" , dowid := 	10000100]
+#silverwest
+ps[lknamemv =="silver" |lknamemv=="silver west" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv=="silver west" , dowid := 62008300 ]
+#snail
+ps[lknamemv =="snail" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv=="snail" , dowid := 62007300 ]
+#"south lundsten"
+ps[lknamemv =="south lundsten" | lknamemv == "s. lundsten" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv=="south lundsten" , dowid := 10004300 ]
+#steiger
+ps[lknamemv =="steiger" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv=="steiger" , dowid := 10004500 ]
+#sunny
+ps[lknamemv =="sunny" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv=="sunny" , dowid := 10004100 ]
+#sweeney
+ps[lknamemv =="sweeney" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv=="sweeney" , dowid := 27003501 ]
+#turbid
+ps[lknamemv =="turbid" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv=="turbid" , dowid := 10005100 ]
+#"wass pond west"
+ps[lknamemv =="wass pond west" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv=="wass pond west" , dowid := 10004802 ]
+#"wasseramann"
+ps[lknamemv =="wasseramann" | lknamemv == "wasserman", .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv=="wasseramann" , dowid := 10004800 ]
+ps[lknamemv=="wasseramann", lknamemv := "wasserman"]
+#west auburn
+ps[lknamemv =="west auburn" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv=="west auburn" , dowid := 10004401 ]
+#white bear
+ps[lknamemv =="whitebear" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv=="whitebear" , dowid := 82016700 ]
+#zumbra
+ps[lknamemv =="zumbra" , .N,.(lknamemv,datemv,datasourcemv, dowid)]
+ps[lknamemv=="zumbra" , dowid := 10004100 ]
+
+#' At this point, ever lake should have either a match or at least one or two named surveys following that match.
+#' 
+#' 
+matched <- match(sort(unique(ps[is.na(dowid) == T, lknamemv,])),
+                 sort(unique(dow19$survey_lake))
+)
+#need to nab these lake dows manually:
 sort(unique(ps[is.na(dowid) == T, lknamemv,]))[is.na(matched)]
-
-
+sort(unique(ps$lknamemv))
+#all issues solved.
 
 #merge dow18 do vals into ps
 
-str(dow18)
+str(dow19)
 str(ps[ , .("lknamemv", "datasourcemv","datemv",dowid)])
 
-dow18[ , datemv:=as.character(survey_date)]
-dow18[ , lknamemv := as.character(survey_lake)]
-dow18[ , datasourcemv := as.character(survey_contributor)]
+dow19[ , datemv:=as.character(survey_date)]
+dow19[ , lknamemv := as.character(survey_lake)]
+dow19[ , datasourcemv := as.character(survey_contributor)]
 
-#drop dow18 lines incomplete for these 4
-dow18 <- dow18[ , .(datemv, lknamemv, datasourcemv, survey_dow) ,]
-dow18[ , survey_dow:=as.integer(survey_dow)]
-dow18 <- dow18[complete.cases(dow18), , ]
+#drop dow19 lines incomplete for these 4
+dow19 <- dow19[ , .(datemv, lknamemv, datasourcemv, survey_dow) ,]
+dow19[ , survey_dow:=as.integer(survey_dow)]
+dow19 <- dow19[complete.cases(dow19), , ]
 
-# ps <- merge( ps, dow18, by = c("lknamemv", "datasourcemv","datemv"), all.x = T)
-# copy <- ps
 # dt version:
 setkeyv(ps, c("lknamemv", "datasourcemv","datemv") )
-setkeyv(dow18, c("lknamemv", "datasourcemv","datemv"))
+setkeyv(dow19, c("lknamemv", "datasourcemv","datemv"))
 
-ps[dow18 , dow18:= i.survey_dow]
+ps[dow19 , dow19:= i.survey_dow]
 
-summary(as.integer(ps$dow18))
+summary(as.integer(ps$dow19))
 
 #now check coverage and drop dows from dow18 into the dow column then delete extra cols
-summary(ps[ , .(dowid, dow18) , ])
+summary(ps[ , .(dowid, dow19) , ])
 ps[is.na(dowid), .N , c("lknamemv", "datasourcemv","datemv")]
 
 #assign dow to the dowid column
-ps[is.na(dowid) == T & is.na(dow18)==F , dowid := dow18, ]
+ps[is.na(dowid) == T & is.na(dow19)==F , dowid := dow19, ]
+summary(ps[ , .(dowid, dow19) , ])
 
 # add in any missing dows manually ----------------------------------------
 
 #fix the last few manually
 ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)]
 
-#benton
-ps[lknamemv=="benton", .N , .(lknamemv, datasourcemv, dowid, datemv)]
-ps[lknamemv=="benton", dowid:= 41004300]
-#big marine
-ps[lknamemv=="big marine", .N , .(lknamemv, datasourcemv, dowid, datemv)]
-ps[lknamemv=="big marine", dowid:= 82005200]
-#big sob
-ps[lknamemv=="big sob", .N , .(lknamemv, datasourcemv, dowid, datemv)]
-ps[lknamemv=="big sob", dowid:= 27009999]# big sob does not have a dow that I can find
-#brownie
+sort(unique(ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)][,lknamemv,]))
+
+#ann
+ps[lknamemv=="ann", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="ann", dowid:= 10001200]
+ps[lknamemv=="armstrong", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="armstrong", dowid:= 82011600]
+ps[lknamemv=="bass", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="bass" & datasourcemv != "Allison Gamble", dowid:= 86023400]
+ps[lknamemv=="beebe", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="beebe", dowid:= 86002300]
 ps[lknamemv=="brownie", .N , .(lknamemv, datasourcemv, dowid, datemv)]
 ps[lknamemv=="brownie", dowid:= 27003800]
-#calhoun
 ps[lknamemv=="calhoun", .N , .(lknamemv, datasourcemv, dowid, datemv)]
 ps[lknamemv=="calhoun", dowid:= 27003100]
-#cedar
+ps[lknamemv=="carsons bay", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="carsons bay", dowid:= 27013303]
 ps[lknamemv=="cedar", .N , .(lknamemv, datasourcemv, dowid, datemv)]
-ps[lknamemv=="cedar" & datasourcemv == "Allison Gamble" , dowid:= 66005200]
-ps[lknamemv=="cedar" & datasourcemv == "Allison Gamble" , datemv:= "2014-07-17"]
-ps[lknamemv=="cedar" & datasourcemv == "Rob Brown" , dowid:= 27003900]
-#christmas
+ps[lknamemv=="cedar" & datemv == "2016-08-01" , dowid:= 86022700]
+ps[lknamemv=="cedar" & is.na(dowid) == T , dowid := 27003900]
 ps[lknamemv=="christmas", .N , .(lknamemv, datasourcemv, dowid, datemv)]
 ps[lknamemv=="christmas", dowid := 27013700]
-#fish
-ps[lknamemv=="fish", .N , .(lknamemv, datasourcemv, dowid, datemv)]
-ps[lknamemv=="fish" & datasourcemv == "James Johnson", dowid := 70006900]
-#harriet
+ps[lknamemv=="colby", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="colby" , dowid := 82009400]
+ps[lknamemv=="crooked", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="crooked" , dowid := 2008400]
+ps[lknamemv=="demontreville", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="demontreville" , dowid := 82010100]
+ps[lknamemv=="duck", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="duck" , dowid := 27006900]
+ps[lknamemv=="eagle", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="eagle" , dowid := 27011101]
+ps[lknamemv=="elmo", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="elmo" , dowid := 82010600]
 ps[lknamemv=="harriet", .N , .(lknamemv, datasourcemv, dowid, datemv)]
 ps[lknamemv=="harriet" , dowid := 27001600]
-#island
-ps[lknamemv=="island", .N , .(lknamemv, datasourcemv, dowid, datemv)]
-ps[lknamemv=="island" , dowid := 62007500]
-ps[lknamemv=="island" & is.na(datemv)==T , datemv := "2010-05-17"]
-#isles
+ps[lknamemv=="howard", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="howard" , dowid := 86019900]
+ps[lknamemv=="idlewild", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="idlewild" , dowid := 27007400]
 ps[lknamemv=="isles", .N , .(lknamemv, datasourcemv, dowid, datemv)]
 ps[lknamemv=="isles" , dowid := 27004000]
-#loring
-ps[lknamemv=="loring", .N , .(lknamemv, datasourcemv, dowid, datemv)]
-ps[lknamemv=="loring" , dowid := 27065500]
-#medicine
-ps[lknamemv=="medicine", .N , .(lknamemv, datasourcemv, dowid, datemv)]
-ps[lknamemv=="medicine" , dowid := 27010400]
-#rebecca
-ps[lknamemv=="rebecca", .N , .(lknamemv, datasourcemv, dowid, datemv)]
-ps[lknamemv=="rebecca" , dowid := 27019200]
-#sakatah bay
-ps[lknamemv=="sakatah bay", .N , .(lknamemv, datasourcemv, dowid, datemv)]
-ps[lknamemv=="sakatah bay" , dowid := 40000201]
-#wirth
-ps[lknamemv=="wirth", .N , .(lknamemv, datasourcemv, dowid, datemv)]
-ps[lknamemv=="wirth" , dowid := 27003700]
+ps[lknamemv=="jane", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="jane" , dowid := 82010400]
+ps[lknamemv=="john", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="john" , dowid := 86028800]
+ps[lknamemv=="la", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="la" , dowid := 82009700]
+ps[lknamemv=="long", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="long" & datasourcemv =="James Johnson" , dowid := 29016100]
+ps[lknamemv=="long" & datasourcemv =="Meg Rattei_19" , dowid := 82011800]
+ps[lknamemv=="lost", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="lost" , dowid := 82013400]
+ps[lknamemv=="lotus", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="lotus" , dowid := 10000600]
+ps[lknamemv=="louisa", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="louisa" , dowid := 86028200]
+ps[lknamemv=="maple", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="maple" , dowid := 86013401]
+ps[lknamemv=="marie", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="marie" , dowid := 73001400]
+ps[lknamemv=="markgrafs", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="markgrafs" , dowid := 82008900]
+ps[lknamemv=="martha", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="martha" , dowid := 86000900]
+ps[lknamemv=="maxwell", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="maxwell" , dowid := 27013320]
+ps[lknamemv=="olson", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="olson" , dowid := 82010300]
+ps[lknamemv=="pike", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="pike" , dowid := 27011100]
+ps[lknamemv=="platte", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="platte" , dowid := 18008800]
+ps[lknamemv=="powers", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="powers" , dowid := 82009200]
+ps[lknamemv=="ravine", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="ravine" , dowid := 82008700]
+ps[lknamemv=="red rock", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="red rock" , dowid := 27007600]
+ps[lknamemv=="rice", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="rice" , dowid := 27011600]
+ps[lknamemv=="riley", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="riley" , dowid := 10000200]
+ps[lknamemv=="rush", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="rush" , dowid := 71014700]
+ps[lknamemv=="silver", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="silver" & datasourcemv == "Meg Rattei_19" , dowid := 62000100]
+ps[lknamemv=="silver" & datasourcemv == "Meg Rattei_19" , datemv := "2018-07-29"]
+ps[lknamemv=="silver" & datasourcemv == "James Johnson" , dowid := 27013600]
+ps[lknamemv=="silver" & datasourcemv == "Andrea Prichard_19" , dowid := 62000100]
+ps[lknamemv=="southeast anderson", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="southeast anderson" , dowid := 27006202]
+ps[lknamemv=="stubbs", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="stubbs" , dowid := 27013319]
+ps[lknamemv=="sullivan", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="sullivan" , dowid := 49001600]
+ps[lknamemv=="susan", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="susan" , dowid := 10001300]
+ps[lknamemv=="twin", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="twin" & datasourcemv == "Meg Rattei_19", dowid := 27003502]
+ps[lknamemv=="weaver", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="weaver" , dowid := 27011700]
+ps[lknamemv=="westwood", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="westwood" , dowid := 27071100]
+ps[lknamemv=="wilmes", .N , .(lknamemv, datasourcemv, dowid, datemv)]
+ps[lknamemv=="wilmes" , dowid := 82009000]
 
 # any surveys missing dows?
 ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)]
+sort(unique(ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)][,lknamemv,]))
+
+# progress checkpoint -----------------------------------------------------
+# save progress as a .csv file in output data folder  
+setwd("E:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")
+# write.csv(ps, file = "data/output/clp_2018dow_2019dow_surveys.csv", row.names = F)    
+# Set working directory back to project location
+# ps <- fread(file = "data/output/clp_2018dow_2019dow_surveys.csv")
+
+
+
+
 
 
 
@@ -2143,11 +2275,6 @@ ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)]
 
 
 
-unique(ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)][, as.character(lknamemv),])
-
-unique(sort(dow18[,survey_lake,]))
-
-ps[lknamemv == "big marine", .N,.(lknamemv, datasourcemv, dowid, datemv) ]
 
 #####
 
