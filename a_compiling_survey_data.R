@@ -2261,13 +2261,20 @@ setwd("E:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollati
 # Set working directory back to project location
 # ps <- fread(file = "data/output/clp_2018dow_2019dow_surveys.csv")
 
+ps[ , .N , by = .(datemv, dowid)  ]
 
+survIDunique[]
 
+#create new, unique survey ID for each survey
+ps[ , .N , by = .(datemv, dowid, datasourcemv)  ]
+nrow(ps[ , .N , by = .(datemv, dowid, datasourcemv)  ])
+ps[ , SURVEY_ID:= .GRP , by = .(datemv, dowid, datasourcemv)  ]
 
+surveys <- ps[ , .N , by = .(datemv, dowid, datasourcemv, SURVEY_ID)  ]
 
-
-
-
+duplicated(surveys[ , .(datemv,dowid) ,])
+surveys[duplicated(surveys[ , .(datemv,dowid) ,]), dup:= TRUE , ]
+surveys[ ,  , ]
 
 ###########################
 
