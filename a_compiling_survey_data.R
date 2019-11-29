@@ -2256,14 +2256,12 @@ sort(unique(ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)
 
 # progress checkpoint -----------------------------------------------------
 # save progress as a .csv file in output data folder  
-setwd("E:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")
+setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")
 # write.csv(ps, file = "data/output/clp_2018dow_2019dow_surveys.csv", row.names = F)    
 # Set working directory back to project location
 # ps <- fread(file = "data/output/clp_2018dow_2019dow_surveys.csv")
 
 ps[ , .N , by = .(datemv, dowid)  ]
-
-survIDunique[]
 
 #create new, unique survey ID for each survey
 ps[ , .N , by = .(datemv, dowid, datasourcemv)  ]
@@ -2271,10 +2269,12 @@ nrow(ps[ , .N , by = .(datemv, dowid, datasourcemv)  ])
 ps[ , SURVEY_ID:= .GRP , by = .(datemv, dowid, datasourcemv)  ]
 
 surveys <- ps[ , .N , by = .(datemv, dowid, datasourcemv, SURVEY_ID)  ]
-
+# identify then drop duplicated rows
 duplicated(surveys[ , .(datemv,dowid) ,])
 surveys[duplicated(surveys[ , .(datemv,dowid) ,]), dup:= TRUE , ]
-surveys[ ,  , ]
+ids_to_drop <- surveys[ dup == T , SURVEY_ID,]
+
+ps <- ps[!(SURVEY_ID %in% ids_to_drop), .N , .(datemv, dowid, datasourcemv, SURVEY_ID) ]
 
 ###########################
 
