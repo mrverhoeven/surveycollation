@@ -28,7 +28,9 @@
   library(tools)
   library(data.table)
   library(xtable)
- 
+  library(tidyr)
+
+
 
 # assign custom functions -------------------------------------------------
 
@@ -2261,7 +2263,6 @@ setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollati
 # Set working directory back to project location
 # ps <- fread(file = "data/output/clp_2018dow_2019dow_surveys.csv")
 
-
 # drop duplicated surveys -------------------------------------------------
 
 
@@ -2281,15 +2282,16 @@ ids_to_drop <- surveys[ dup == T , SURVEY_ID,]
 ps[!(SURVEY_ID %in% ids_to_drop), .N , .(datemv, dowid, datasourcemv, SURVEY_ID) ]
 ps <- ps[!(SURVEY_ID %in% ids_to_drop), , ]
 
-
-# clean up field names ----------------------------------------------------
-
 ps <- tbl_df(ps)
 ps[] <- lapply(ps[], factor)
 
 #drop columns with no data:
 
 ps <- ps[,colSums(is.na(ps))<nrow(ps)]
+
+
+# export old fieldnames ---------------------------------------------------
+
 
 #' # Old Variable Names
 #' 
@@ -2321,7 +2323,13 @@ str(fielduse)
 #length(unique(fielduse[,1]))
 
 #' Save the field (or variable) name data as a .csv file in the clp_surveys folder
-write.csv(fielduse, file = "data/output/fieldkeystart.csv", row.names = F)
+# write.csv(fielduse, file = "data/output/fieldkeystart.csv", row.names = F)
+
+
+
+# bring in new field names ------------------------------------------------
+
+
 
 #' # New Variable Names
 #' 
@@ -2335,25 +2343,15 @@ write.csv(fielduse, file = "data/output/fieldkeystart.csv", row.names = F)
 #' 
 #' Heres a look at what I came up with
 # to load in finished field key:
-fk3 <- read.csv(file = "") 
+fk3 <- fread(file = "data/input/fieldkeydone.csv") 
 str(fk3)
 
-#' Not bad, we went from 607 variables to 161. Lets take a look at the new names:
-sort(unique(fk3[,'mrvname']))
+#' Not bad, we went from 1400 to 240 column names. Lets take a look at the new names:
+names <- fk3[,.N,newfieldname]
 
 #' # Assign New Variable Names to Data
 #' 
-#' Now we want to take the "mrvnames" and pop them in as new columnnames in our statewide dataset. 
-#' Delete the extra stuff (mrv name, lk name, other info columns) from our lookup table (only need fieldname and mrvname columns)
-str(fk3)
-fk3[,c(2,3,5,6)] <- NULL
-str(fk3)
-
-#' There are also two dummy columns that I used in assembly that we can delete right away( titled: "NA" and "X" )
-summary(ps[,'NA.'])
-summary(ps[,'X..'])
-ps$NA. <- NULL
-ps$X.. <- NULL
+#' Now we want to take the "new fieldnames" and pop them in as new columnnames in our statewide dataset. 
 
 #' now check to make sure that we have a full key for each unique column title in fieldkey 3:
 length(colnames(ps))
@@ -2370,12 +2368,12 @@ length(pst)
 # a <- c(1,2,3,4,5)
 # key <- data.frame(old = c(1:5), new = c(3,3,3,5,5))
 # match(a,key$new)
-sum(is.na(match(pst, fk3[,1]))) # 0 NA matches
-length(unique(match(pst, fk3[,1]))) # 607 unique matches
+sum(is.na(match(pst, fk3[,fieldname]))) # 0 NA matches
+length(unique(match(pst, fk3[,fieldname]))) # 607 unique matches
 
 #' make a new columnname vector that has my new variable names in the order of the way they match the old dataset
 # make a vector that matches ps column names to my old names and assigns each object the new name (order of old dataset is maintained)
-pst1 <- fk3$mrvname[match(pst, fk3[,1])] 
+pst1 <- fk3$newfieldname[match(pst, fk3[,fieldname])] 
 paste(pst1[345],names(ps[345]), sep= "---") # test one match
 
 #' # Collating Multiple Variables Into A Single Column
@@ -2396,7 +2394,7 @@ head(order(names[,1]))
 head(names[order(names[,1]),1:2])
 # alphabetize and tack on numbers
 names <- names[order(names[,1]),1:2] # make "names" into the ordered version
-names$pst3 <- paste(names[,1],1:length(names[,1]),sep = "_") # add numbers to the ordered version
+names$pst3 <- paste(names[,1],1:length(names[,1]),sep = "--") # add numbers to the ordered version
 # keep the old names and the numbered new names:
 fk4 <- names[,2:3]
 
@@ -2413,29 +2411,30 @@ sort(paste(colnames(ps),pst, sep = "---"))
 #' Combine all rows with point.id_i (to develop the code for NA rm and collation of columns)  
 #####
 #' to pull the names w/o any numbers:
-head(word(string = names(ps), start = -2, sep = "_"))
-tail(word(string = names(ps), start = -2, sep = "_"))
+head(word(string = names(ps), start = -2, sep = "--"))
+tail(word(string = names(ps), start = -2, sep = "--"))
 
 #' combine all columns with the same name
-head(names(ps)=="point.id") #which ps are named point.id
-head(word(string = names(ps), start = -2, sep = "_")=="point.id") # and after cutting off the number label?
-head(ps[,word(string = names(ps), start = -2, sep = "_")=="point.id"]) # call out the columns with point.id in them
-names(ps[,word(string = names(ps), start = -2, sep = "_")=="point.id"]) # the names of those columns
+head(names(ps)=="STA_NBR") #which ps are named STA_NBR
+head(word(string = names(ps), start = -2, sep = "--")=="STA_NBR") # and after cutting off the number label?
+head(ps[,word(string = names(ps), start = -2, sep = "--")=="STA_NBR"]) # call out the columns with STA_NBR in them
+names(ps[,word(string = names(ps), start = -2, sep = "--")=="STA_NBR"]) # the names of those columns
+
 
 #' use unite to paste together all point id column data
-ps.test <- unite_(ps, #dataframe
-                  col = "point.id", #new title
-                  names(ps[,word(string = names(ps), start = -2, sep = "_")=="point.id"]), # old titles
+ps.test <- unite(ps, #dataframe
+                  col = "STA_NBR", #new title
+                  names(ps[,word(string = names(ps), start = -2, sep = "--")=="STA_NBR"]), # old titles
                   sep = ",", # separate data with commas
-                  remove = TRUE #delete the old field headings
+                  remove = TRUE, na.rm = T #delete the old field headings
 )
 
-ps.test$point.id <- as.character(ps.test$point.id)
+ps.test$STA_NBR <- as.character(ps.test$STA_NBR)
 # mutate to remove NAs
 head(sapply(ps.test,class))
-ps.test$point.id <- as.factor(ps.test$point.id)
-head(ps.test$point.id)
-head(summary(ps.test$point.id))
+ps.test$STA_NBR <- as.factor(ps.test$STA_NBR)
+head(ps.test$STA_NBR)
+head(summary(ps.test$STA_NBR))
 #####
 
 #' At this point we have a point id variable that contains many NAs (to be deleted) and multiple erroneous (also need to delete these)
@@ -2443,18 +2442,59 @@ head(summary(ps.test$point.id))
 #' Finally, we need to do this unite and subsequent NA deletion for all of the other variables in our dataset. 
 #' 
 #' A loop to unite all columns with the same name, then delete all of the NA's in em'(takes ~ 3 minutes to run)
+psb <- ps
+
+library(devtools)
+devtools::install_github("hadley/tidyr")
+
+# ps <- psb
 for (j in unique(pst1)) {
   # testdat <- ps[1:100,] # used for testing             
-  # j = as.character(unique(pst1)[1]) # used for testing 
+  # j = unique(pst1)[1] # used for testing 
   # unite to paste together all point id column data
-  ps <- unite_(ps, #dataframe
-               col = paste(j,"a",sep = "_") , # new title for created column--must keep "_a" ending to ensure that word() fn doesnt break in the next line
-               names(ps)[word(string = names(ps), start = -2, sep = "_") == j ], # old column titles to be united
-               sep = ",", # separate data from multiple columns with commas
-               remove = TRUE # delete the old field headings
+  ps <- unite(ps, #dataframe
+              col = !! paste(j, "a", sep = "--"), # new title for created column--must keep "_a" ending to ensure that word() fn doesnt break in the next line
+              names(ps)[word(string = names(ps), start = -2, sep = "--") == j ], # old column titles to be united
+              sep = ",", # separate data from multiple columns with commas
+              remove = TRUE,# delete the old field headings
+              na.rm = TRUE
   )
   # trim out NAs and commas
-  ps[,paste(j,"a",sep = "_")] = as.factor(TrimMult(na.remove(ps[,paste(j,"a",sep = "_")]), char = ","))
+  # ps[,paste(j,"a",sep = "_")] = TrimMult(na.remove(ps[,paste(j,"a",sep = "_")]), char = ",")
+  # progress:
+}
+
+
+
+
+# a messy dplyr attempt
+ps[ , id := .I]
+
+ps <- 
+  ps %>%
+  gather("col_ID", "Value",-id)%>%
+  separate(col_ID,c("col_group"),sep="--") %>%
+  group_by(id, col_group) %>%
+  summarize(new_value=paste0(Value,collapse = ",")) %>%
+  spread(col_group,new_value)%>%
+  head()
+
+
+
+# ps <- psb
+for (j in unique(pst1)) {
+  # testdat <- ps[1:100,] # used for testing             
+  # j = string(unique(pst1)[1]) # used for testing 
+  # unite to paste together all point id column data
+  colname <- paste(j, "a", sep = "_")
+  ps <- unite(ps, #dataframe
+               col = enquote(colname), # new title for created column--must keep "_a" ending to ensure that word() fn doesnt break in the next line
+               names(ps)[word(string = names(ps), start = -2, sep = "--") == j ], # old column titles to be united
+               sep = ",", # separate data from multiple columns with commas
+               remove = TRUE# delete the old field headings
+              )
+  # trim out NAs and commas
+  # ps[,paste(j,"a",sep = "_")] = TrimMult(na.remove(ps[,paste(j,"a",sep = "_")]), char = ",")
   # progress:
 }
 
