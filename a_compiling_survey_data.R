@@ -2296,34 +2296,37 @@ ps <- ps[,colSums(is.na(ps))<nrow(ps)]
 #' # Old Variable Names
 #' 
 #' Pull all of the variable names (field names) off of the dataset, also attaching the lake and datasource names to those to help me identify the survey that I need to look at to interpret names
-fielduse <- data.frame()
-print(Sys.time())
-  start <- Sys.time()
-  for (i in 1:ncol(ps)) { 
-  
-  # code for troubleshooting:
-  #####
-  # i =1
-  # colnames(ps)[i] # name for column i
-  # fieldname = colnames(ps[i]) # fieldnames assigned value of column i
-  # unique(ps[which(is.na(ps[,i])==FALSE),c("datasourcemv","lknamemv")]) # for column i, which rows have non NA values? of these, what are the unique lkname and datasource combinations?
-  # str(ps[,i,])
-  # length(unique(ps[which(is.na(ps[,i])==FALSE),c("datasourcemv","lknamemv")])) == 1
-  #####
-  # use rowbind to grow a dataframe that is fieldname=old variable name, and data source, and lake name. Only include unique combinations of each datasource and lkname.
-  fielduse <-  rbind(fielduse,data.frame("fieldname" = colnames(ps[i]),
-                                         unique(ps[which(is.na(ps[,i])==FALSE),c("datasourcemv","lknamemv")])))
-  
-  }
+#' 
+#Unquote to re-export field names: 
 
-  Sys.time() - start
-
-#summary(fielduse)
-str(fielduse)
-#length(unique(fielduse[,1]))
-
-#' Save the field (or variable) name data as a .csv file in the clp_surveys folder
-# write.csv(fielduse, file = "data/output/fieldkeystart.csv", row.names = F)
+#' fielduse <- data.frame()
+#' print(Sys.time())
+#'   start <- Sys.time()
+#'   for (i in 1:ncol(ps)) { 
+#'   
+#'   # code for troubleshooting:
+#'   #####
+#'   # i =1
+#'   # colnames(ps)[i] # name for column i
+#'   # fieldname = colnames(ps[i]) # fieldnames assigned value of column i
+#'   # unique(ps[which(is.na(ps[,i])==FALSE),c("datasourcemv","lknamemv")]) # for column i, which rows have non NA values? of these, what are the unique lkname and datasource combinations?
+#'   # str(ps[,i,])
+#'   # length(unique(ps[which(is.na(ps[,i])==FALSE),c("datasourcemv","lknamemv")])) == 1
+#'   #####
+#'   # use rowbind to grow a dataframe that is fieldname=old variable name, and data source, and lake name. Only include unique combinations of each datasource and lkname.
+#'   fielduse <-  rbind(fielduse,data.frame("fieldname" = colnames(ps[i]),
+#'                                          unique(ps[which(is.na(ps[,i])==FALSE),c("datasourcemv","lknamemv")])))
+#'   
+#'   }
+#' 
+#'   Sys.time() - start
+#' 
+#' #summary(fielduse)
+#' str(fielduse)
+#' #length(unique(fielduse[,1]))
+#' 
+#' #' Save the field (or variable) name data as a .csv file in the clp_surveys folder
+#' # write.csv(fielduse, file = "data/output/fieldkeystart.csv", row.names = F)
 
 
 
@@ -2369,7 +2372,7 @@ length(pst)
 # key <- data.frame(old = c(1:5), new = c(3,3,3,5,5))
 # match(a,key$new)
 sum(is.na(match(pst, fk3[,fieldname]))) # 0 NA matches
-length(unique(match(pst, fk3[,fieldname]))) # 607 unique matches
+length(unique(match(pst, fk3[,fieldname]))) # 1976 unique matches
 
 #' make a new columnname vector that has my new variable names in the order of the way they match the old dataset
 # make a vector that matches ps column names to my old names and assigns each object the new name (order of old dataset is maintained)
@@ -2447,11 +2450,14 @@ psb <- ps #save a copy of ps unedited
 library(devtools)
 devtools::install_github("hadley/tidyr")
 
+
 # ps <- psb
+start <- Sys.time()
 for (j in unique(pst1)) {
+  
   print(match(j, unique(pst1)))
   # testdat <- ps[1:100,] # used for testing             
-  # j = unique(pst1)[156] # used for testing 
+  # j = unique(pst1)[32] # used for testing 
   # unite to paste together all point id column data
   ps <- unite(ps, #dataframe
               col = !! paste(j, "a", sep = "--"), # new title for created column--must keep "_a" ending to ensure that word() fn doesnt break in the next line
@@ -2464,55 +2470,38 @@ for (j in unique(pst1)) {
   # ps[,paste(j,"a",sep = "_")] = TrimMult(na.remove(ps[,paste(j,"a",sep = "_")]), char = ",")
   # progress:
 }
+Sys.time() - start
 
 
 
+# # a messy dplyr attempt
+# ps[ , id := .I]
+# 
+# ps <- 
+#   ps %>%
+#   gather("col_ID", "Value",-id)%>%
+#   separate(col_ID,c("col_group"),sep="--") %>%
+#   group_by(id, col_group) %>%
+#   summarize(new_value=paste0(Value,collapse = ",")) %>%
+#   spread(col_group,new_value)%>%
+#   head()
 
-# a messy dplyr attempt
-ps[ , id := .I]
-
-ps <- 
-  ps %>%
-  gather("col_ID", "Value",-id)%>%
-  separate(col_ID,c("col_group"),sep="--") %>%
-  group_by(id, col_group) %>%
-  summarize(new_value=paste0(Value,collapse = ",")) %>%
-  spread(col_group,new_value)%>%
-  head()
-
-
-
-# ps <- psb
-for (j in unique(pst1)) {
-  # testdat <- ps[1:100,] # used for testing             
-  # j = string(unique(pst1)[1]) # used for testing 
-  # unite to paste together all point id column data
-  colname <- paste(j, "a", sep = "_")
-  ps <- unite(ps, #dataframe
-               col = enquote(colname), # new title for created column--must keep "_a" ending to ensure that word() fn doesnt break in the next line
-               names(ps)[word(string = names(ps), start = -2, sep = "--") == j ], # old column titles to be united
-               sep = ",", # separate data from multiple columns with commas
-               remove = TRUE# delete the old field headings
-              )
-  # trim out NAs and commas
-  # ps[,paste(j,"a",sep = "_")] = TrimMult(na.remove(ps[,paste(j,"a",sep = "_")]), char = ",")
-  # progress:
-}
 
 #' # Check Result, Save Progress
 #' examine the new variables
 head(sort(names(ps)))
 str(ps)
-summary(ps$point.id_a)
+summary(ps$`STA_NBR--a`)
 
 #' strip "_a" from the new field names (used in the collating process)
 # to pull the names w/o any "_a":
 # word(string = names(ps), start = -2, sep = "_")
-colnames(ps) <- word(string = names(ps), start = -2, sep = "_")
+colnames(ps) <- word(string = names(ps), start = -2, sep = "--")
 sort(names(ps))
 
 #' save progress as a .csv file in the clp_surveys folder
 
+write.csv(ps, file = "data/output/surveys_columns_united.csv")
 
 
 
