@@ -2442,15 +2442,16 @@ head(summary(ps.test$STA_NBR))
 #' Finally, we need to do this unite and subsequent NA deletion for all of the other variables in our dataset. 
 #' 
 #' A loop to unite all columns with the same name, then delete all of the NA's in em'(takes ~ 3 minutes to run)
-psb <- ps
+psb <- ps #save a copy of ps unedited
 
 library(devtools)
 devtools::install_github("hadley/tidyr")
 
 # ps <- psb
 for (j in unique(pst1)) {
+  print(match(j, unique(pst1)))
   # testdat <- ps[1:100,] # used for testing             
-  # j = unique(pst1)[1] # used for testing 
+  # j = unique(pst1)[156] # used for testing 
   # unite to paste together all point id column data
   ps <- unite(ps, #dataframe
               col = !! paste(j, "a", sep = "--"), # new title for created column--must keep "_a" ending to ensure that word() fn doesnt break in the next line
