@@ -2494,7 +2494,7 @@ sort(names(ps))
 #' save progress as a .csv file in the clp_surveys folder
 
 # write.csv(ps, file = "data/output/surveys_columns_united.csv")
-ps <- fread(input = "data/output/surveys_columns_united.csv")
+#ps <- fread(input = "data/output/surveys_columns_united.csv")
 
 
 # clean out cells in each column ------------------------------------------
