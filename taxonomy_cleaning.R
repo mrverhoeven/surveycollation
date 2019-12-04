@@ -40,6 +40,7 @@
   
   taxa <- sort(unique(c(OTtax,DNRtax[TAXON!= "No Veg Found" , TAXON , ])))
   
+<<<<<<< HEAD
   taxalist <- data.table(id = NA, taxon = taxa)
   
   taxalist[ , id := .I, ]
@@ -47,4 +48,7 @@
   write.csv(taxa, file = "data/output/taxalist.csv" )
   
   a <- fread(input = "data/output/taxalist.csv", skip = 1)
+=======
+  
+>>>>>>> 89a92aadd59c98a2119e4d0a7a91f69eded2d822
   
