@@ -40,7 +40,6 @@
   
   taxa <- sort(unique(c(OTtax,DNRtax[TAXON!= "No Veg Found" , TAXON , ])))
   
-
   taxalist <- data.table(id = NA, taxon = taxa)
   
   taxalist[ , id := .I, ]

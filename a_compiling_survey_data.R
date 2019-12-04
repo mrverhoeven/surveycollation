@@ -2618,7 +2618,7 @@ ps[ , STA_NBR := word(STA_NBR, sep = "-") ,]
 unique(ps$STA_NBR)
 unique(ps$STA_NBR)[1000:length(unique(ps$STA_NBR))]
 
-write.csv(ps , file = "data/output/Surveys_cleaning4Dec.csv", row.names = F)
+# write.csv(ps , file = "data/output/Surveys_cleaning4Dec.csv", row.names = F)
 
 # depths ------------------------------------------------------------------
 
