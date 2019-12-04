@@ -94,7 +94,8 @@
   tnrs.final[submittedname == "Sparganium species - emergent type", species := "Sparganium (emergent)"]
   tnrs.final[submittedname == "Sparganium species - floating-leaf type", species := "Sparganium (floating)"]
   tnrs.final[submittedname == "Water Cress spp.", species := "Nasturtium officinale"]
-
+  tnrs.final[species == "Alga", species := "DELETE"] 
+  
   # Reduced by 50 taxa 
   length(unique(tnrs.final$submittedname))
   length(unique(tnrs.final$species))
