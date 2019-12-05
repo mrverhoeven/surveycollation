@@ -3043,7 +3043,7 @@ ps[,sample_taken:= NULL]
  
  myfunc(dt, mpg)
  
- 
+ system.time(for (i in 1:1000) set(DT,i,1L,i))
  
  #' #Automate the rest:
  #' 
@@ -3056,7 +3056,7 @@ ps[,sample_taken:= NULL]
    # i = "Stuckenia pectinata"
    # i = "najas.spp"
    ps[,get(i)] 
-   set(ps[is.na(ps[,get(i)]) == T | ps[,get(i)] == "" ,], j = get(i) , value = "0" ) 
+   set(ps, which(is.na(ps[,get(i)]) == T | ps[,get(i)] == "") , j = match(i,ps.taxa.names) , value = "0" ) 
    # round half integers up:
    ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "0.5", (get(i))] <- "1"
    ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "1.5", get(i)] <- "2"
