@@ -2554,7 +2554,7 @@ ps[ps$STA_NBR == "" & ps[,depth_m]!= "", .(STA_NBR,depth_m)] # these are obvious
 
 #' These are seeemingly actual observations. Unfortunately we dont have point IDs for them...
 
-sum(ps$STA_NBR == "" & ps[,DEPTH_FT]!= "") # data in the depth.feet column?
+sum(ps$STA_NBR == "" & ps[,DEPTH_FT]!= "") # data in the DEPTH_FT column?
 sum(ps$STA_NBR == "" & ps[,depth_unk]!= "") # data in the feet.unkn column?
 ps[ps$STA_NBR == "" & ps[,depth_unk]!= "",c(1:27)]
 
@@ -2620,10 +2620,11 @@ unique(ps$STA_NBR)[1000:length(unique(ps$STA_NBR))]
 
 # write.csv(ps , file = "data/output/Surveys_cleaning4Dec.csv", row.names = F)
 
-# depths ------------------------------------------------------------------
+# depth meters ------------------------------------------------------------------
+
 
 #' ## depth_m
-#####
+
 summary(ps$depth_m)
 unique(ps$depth_m)
 
@@ -2632,184 +2633,90 @@ sum(ps$depth_m == "")
 
 #' rows with no depth data at all, and not marked as unsampled points:8827
 sum(ps$depth_m == "" &
-      ps$depth.feet == "" &
-      ps$depth.unkn == "" &
-      ps$not.sampled == "")
+      ps$DEPTH_FT == "" &
+      ps$depth_unk == "" &
+      ps$not_sampled == "")
 
-#' maybe the depth was in another column? 6909
+#' maybe the depth was in another column? 
 sum(ps$depth_m == "" &
-      ps$depth.feet == "" &
-      ps$depth.unkn == "" &
-      ps$not.sampled == ""&
-      ps$comments == "" |
+      ps$DEPTH_FT == "" &
+      ps$depth_unk == "" &
+      ps$not_sampled == ""&
+      ps$SURVEY_NOTES == "" &
       ps$delete == "")
 
-#' check out the delete data for those 1918 where theres data in comments or delete columns
+#' check out the delete data for those lines where theres data in comments or delete columns
 unique(ps[ps$depth_m == "" &
-            ps$depth.feet == "" &
-            ps$depth.unkn == "" &
-            ps$not.sampled == ""&
-            (ps$comments != "" |
-               ps$delete != ""), c ("comments", "delete")])
+            ps$DEPTH_FT == "" &
+            ps$depth_unk == "" &
+            ps$not_sampled == "" &
+            (ps$SURVEY_NOTES != "" |
+               ps$delete != ""), c ("SURVEY_NOTES", "delete")])
 
-#' It would be possible to look back through these data to check if the fulll tabular data had hints as to what these numbers were.There may be
-#' cases where my compiling methods (likely the manip in excel) have shifted field headings to the wrong rows.For example you can see that some
-#' of the delete data was marks for "too deep" or "too shallow" which hints that the column that I'm deleteing there was actually conting depth data.
+#' There's really not many lines with relevant info there
 
 #' now see how many are missing data for depth
 sum(ps$depth_m == "") # missing depth_m
 sum(ps$depth_m == "" &  # missing depth_m & .feet
-      ps$depth.feet == "")
+      ps$DEPTH_FT == "")
 sum(ps$depth_m == "" &  # missing depth_m & .feet & .unkn
-      ps$depth.feet == "" &
-      ps$depth.unkn == "")
-sum(ps$depth_m == "" & # missing depth and not marked as "not.sampled"
-      ps$depth.feet == "" &
-      ps$depth.unkn == "" &
-      ps$not.sampled == "")
+      ps$DEPTH_FT == "" &
+      ps$depth_unk == "")
+sum(ps$depth_m == "" & # missing depth and not marked as "not_sampled"
+      ps$DEPTH_FT == "" &
+      ps$depth_unk == "" &
+      ps$not_sampled == "")
 sum(ps$depth_m == "" & # missing depth info, not marked as unsampled, and not having anything in the comments section
-      ps$depth.feet == "" &
-      ps$depth.unkn == "" &
-      ps$not.sampled == ""&
-      ps$comments == "" )
+      ps$DEPTH_FT == "" &
+      ps$depth_unk == "" &
+      ps$not_sampled == ""&
+      ps$SURVEY_NOTES == "" )
 sum(ps$depth_m == "" & # all that, and having no info in the "delete" column
-      ps$depth.feet == "" &
-      ps$depth.unkn == "" &
-      ps$not.sampled == ""&
-      ps$comments == "" &
+      ps$DEPTH_FT == "" &
+      ps$depth_unk == "" &
+      ps$not_sampled == ""&
+      ps$SURVEY_NOTES == "" &
       ps$delete == "")
 
-#' My vote is that we delete all rows where these are all blank (depth_m, .feet, .unkn, not.sampled) and
-#' since I'm the only one that gets to vote: (this will remove 8850 rows)
+#' My vote is that we delete all rows where these (depth_m, .feet, .unkn, not_sampled) are all blank  and
+#' since I'm the only one that gets to vote... (this will remove 14674 rows)
 # if you have no depth info, & you're not marked as unsampled you go bye-bye
 ps <- ps[ps$depth_m != "" | 
-           ps$depth.feet != "" |
-           ps$depth.unkn != "" |
-           ps$not.sampled != "",]
+           ps$DEPTH_FT != "" |
+           ps$depth_unk != "" |
+           ps$not_sampled != "",]
 
-#' Next lets move markings that indicated "not.sampled" from this column into the not.sampled one
+#' Next lets move markings that indicated "not_sampled" from this column into the not_sampled one
 #' What to do with rows within feet.meter that have erroneous things written in them (too deep, too shallow, etc)? I think that these rows need to be blanked out (or NA),
-#' then a 1 added into the "not.sampled" column.
+#' then a 1 added into the "not_sampled" column.
 sort(unique(ps$depth_m))
 
-# how many cases? 246
-sum(ps$depth_m == "Land" |
-      ps$depth_m ==  "land" |
-      ps$depth_m ==  "Unable to Sample"|
-      ps$depth_m ==  "sandbar"|
-      ps$depth_m ==  "Missed"|
-      ps$depth_m ==  "x"|
-      ps$depth_m ==  "too shallow"|
-      ps$depth_m ==  "shallow"|
-      ps$depth_m ==  "shoreline"|
-      ps$depth_m ==  "ISLAND"|
-      ps$depth_m ==  "TS"|
-      ps$depth_m ==  "*"|
-      ps$depth_m ==  "Island"|
-      ps$depth_m ==  "No sample"|
-      ps$depth_m ==  "E"|
-      ps$depth_m ==  "Too Shallow"|
-      ps$depth_m ==  "Too shallow"|
-      ps$depth_m ==  "Bulrush"|
-      ps$depth_m ==  "island"|
-      ps$depth_m ==  "Cattails"|
-      ps$depth_m ==  "Channel"|
-      ps$depth_m ==  "channel"|
-      ps$depth_m ==  "Shore"|
-      ps$depth_m ==  "Shallow"|
-      ps$depth_m ==  "Deep"|
-      ps$depth_m ==  "shore")
+# how many cases? 475
+sum(is.na(match(ps[,depth_m], sort(unique(ps$depth_m))[828:856])) == F) 
 
-# mark those into the not.sampled column as "X"
-ps[ps$depth_m == "Land" |
-     ps$depth_m ==  "land" |
-     ps$depth_m ==  "Unable to Sample"|
-     ps$depth_m ==  "sandbar"|
-     ps$depth_m ==  "Missed"|
-     ps$depth_m ==  "x"|
-     ps$depth_m ==  "too shallow"|
-     ps$depth_m ==  "shallow"|
-     ps$depth_m ==  "shoreline"|
-     ps$depth_m ==  "ISLAND"|
-     ps$depth_m ==  "TS"|
-     ps$depth_m ==  "*"|
-     ps$depth_m ==  "Island"|
-     ps$depth_m ==  "No sample"|
-     ps$depth_m ==  "E"|
-     ps$depth_m ==  "Too Shallow"|
-     ps$depth_m ==  "Too shallow"|
-     ps$depth_m ==  "Bulrush"|
-     ps$depth_m ==  "island"|
-     ps$depth_m ==  "Cattails"|
-     ps$depth_m ==  "Channel"|
-     ps$depth_m ==  "channel"|
-     ps$depth_m ==  "Shore"|
-     ps$depth_m ==  "Shallow"|
-     ps$depth_m ==  "Deep"|
-     ps$depth_m ==  "shore",
-   "not.sampled"] <- "X"
+# which of these indicate not_sampled?
+sort(unique(ps$depth_m))[828:856][c(3:5,7:12, 17:28)]
+is.na(match(ps[,depth_m], sort(unique(ps$depth_m))[828:856][c(3:5,7:12, 17:28)])) == F
+ps[ is.na(match(ps[,depth_m], sort(unique(ps$depth_m))[828:856][c(3:5,7:12, 17:28)])) == F , depth_m,] #peel of lines that match the params
+ps[ is.na(match(ps[,depth_m], sort(unique(ps$depth_m))[828:856][c(3:5,7:12, 17:28)])) == F , not_sampled := "X",] # mark the not sampled column
 
-# change their values to blank in the depth_m column
-ps[ps$depth_m == "Land" |
-     ps$depth_m ==  "land" |
-     ps$depth_m ==  "Unable to Sample"|
-     ps$depth_m ==  "sandbar"|
-     ps$depth_m ==  "Missed"|
-     ps$depth_m ==  "x"|
-     ps$depth_m ==  "too shallow"|
-     ps$depth_m ==  "shallow"|
-     ps$depth_m ==  "shoreline"|
-     ps$depth_m ==  "ISLAND"|
-     ps$depth_m ==  "TS"|
-     ps$depth_m ==  "*"|
-     ps$depth_m ==  "Island"|
-     ps$depth_m ==  "No sample"|
-     ps$depth_m ==  "E"|
-     ps$depth_m ==  "Too Shallow"|
-     ps$depth_m ==  "Too shallow"|
-     ps$depth_m ==  "Bulrush"|
-     ps$depth_m ==  "island"|
-     ps$depth_m ==  "Cattails"|
-     ps$depth_m ==  "Channel"|
-     ps$depth_m ==  "channel"|
-     ps$depth_m ==  "Shore"|
-     ps$depth_m ==  "Shallow"|
-     ps$depth_m ==  "Deep"|
-     ps$depth_m ==  "shore",
-   "depth_m"] <- ""
+#' We need to have some idea of what the remainder each of these were used to 
+#' denote if we want to do anything with them. Rather than try to infer what the
+#' ambiguous ones meant, we'll delete the words from this column
+#' (leaving the row in the dataset). 
+#' 
+ps[ is.na(match(ps[,depth_m], sort(unique(ps$depth_m))[c(2,828:856)])) == F , depth_m := "",] # make ambiguous depth data into blanks
+
 
 # check for leftover words or erroneous
 sort(unique(ps$depth_m))
 
-#' depth 3..3 should be 3.3
-sum(ps$depth_m =="3..3")
-ps[ps$depth_m =="3..3", "depth_m"] <- 3.3
-
 #' depth = 1 should be 1
 sum(ps$depth_m == "= 1") # 32 cases.. who wrote this and in what surveys?
-ps[ps$depth_m == "= 1", c("datemv", "datasourcemv")]
+ps[ps$depth_m == "= 1", c("SURVEY_DATE", "DATASOURCE")]
 # it looks like in rich brasch's surveys on these dates he wrote "<= 1", but my setup pulled in "= 1"
 # I will set these to 1 for depth
 ps[ps$depth_m == "= 1", "depth_m"] <- "1"
-
-#' Brasch also used a bunch of these NI and NI* things.... = "Not Interested?"
-ps[ps$depth_m== "NI*" |
-     ps$depth_m== "NI" ,c("datemv", "datasourcemv")]
-#what is in the N/A, NI, NI* rows
-ps[ps$depth_m == "N/A"|
-     ps$depth_m == "NI"|
-     ps$depth_m == "NI*", c("lknamemv", "depth_m", "myriophyllum.spicatum", "ceratophyllum.demersum")]
-#can i populate these with depths from another survey?
-ps[ps$datasourcemv == "brasch" &
-     ps$datemv == "2006-09-14" &
-     ps$depth_m == "NI*", c("point.id", "depth.unkn")]
-#maybe, but not going to do that for now...
-
-#' I think that NI and NI* are points where the surveyors were unable to record depths. In the future I could try to fill them in by using another survey date's depth data... for
-#' not I am going to delete these 4 surveys
-#set depth_m to "" (we will delete the lines with no depth in a later step)
-ps[ps$depth_m== "NI*" |
-     ps$depth_m== "NI" , "depth_m"] <- ""
 
 #' what else do we need to tackle?  
 sort(unique(ps$depth_m))
@@ -2817,32 +2724,33 @@ sort(unique(ps$depth_m))
 #' how many "0" for depth_m?
 sum(ps$depth_m == "0")
 # who wrote that?
-ps[ps$depth_m== "0" ,c("datemv", "datasourcemv", "lknamemv")]
-nrow(ps[ps$depth_m== "0" ,c("datemv", "datasourcemv", "lknamemv")])
+ps[ps$depth_m== "0" ,c("SURVEY_DATE", "DATASOURCE", "LAKE_NAME")]
 
-#' It looks like they meant not.sampled. We'll move these over to that column
-ps[ps$depth_m== "0" ,"not.sampled"] <- "X"
+#' It looks like they meant not_sampled. We'll move these over to that column
+ps[ps$depth_m== "0" ,"not_sampled"] <- "X"
 # and set depth_m = ""
 ps[ps$depth_m== "0" ,"depth_m"] <- ""
 
-#' how many with no depth in any of the three (249) and marked as not.sampled (249) )
+#' how many with no depth in any of the three (136) and marked as not_sampled (136) )
 ps$depth_m <- as.character(ps$depth_m)
-length( ps[ps$depth_m== "" &
-             ps$depth.feet == "" &
-             ps$depth.unkn == "" &
-             ps$not.sampled == "X", "depth_m"])
+ ps[ps$depth_m== "" &
+             ps$DEPTH_FT == "" &
+             ps$depth_unk == "" &
+             ps$not_sampled == "X", "depth_m"]
 
 #' what else do we need to tackle?  
 sort(unique(ps$depth_m))
 
-#' delete the "N/A" row
-ps[ps$depth_m == "N/A", "datasourcemv"]
-ps <- ps[ps$depth_m != "N/A",]
+#' drop "m" off the depths and make sure there are no erroneous spaces
+ps[ ,depth_m := gsub("m","", depth_m) , ]
+ps[ ,depth_m := gsub(" ","", depth_m) , ]
+sort(unique(ps$depth_m))
 
-length(ps$depth_m == "")
+ps[ depth_m == "",DOWLKNUM ,]
+sum(is.na(as.numeric(ps$depth_m)) == T)
 
 #' Set depth_m as a numeric:
-ps$depth_m <- as.numeric(ps$depth_m)
+ps[ , depth_m:= as.numeric(depth_m),]
 summary(ps$depth_m)
 
 #' Visualize results  
@@ -2851,7 +2759,7 @@ hist(ps$depth_m, breaks = seq(0, 100, .1), freq = T , xlim = c(0,50), ylim = c(0
 
 #' who input depths in meters exceeding 10?
 ps[is.na(ps$depth_m) == F &
-     ps$depth_m > 10 , c("depth_m", "datemv", "datasourcemv", "lknamemv")]
+     ps$depth_m > 10 , c("depth_m", "SURVEY_DATE", "DATASOURCE", "LAKE_NAME")]
 # johnson 46 and 37 were intended to be 4.6 and 3.7, all the rest look legit to me.
 ps[is.na(ps$depth_m) == F &
      ps$depth_m == 46 , "depth_m"] <- 4.6
@@ -2864,304 +2772,260 @@ hist(ps$depth_m, breaks = seq(0, 100, .1), freq = T , xlim = c(0,20))
 hist(ps$depth_m, breaks = seq(0, 100, .1), freq = T , xlim = c(0,50), ylim = c(0,5))
 
 #' I guess that pretty much wraps up the depth meters column
-#####
 
-#' ## depth.feet
-#####
+
+
+# depth feet --------------------------------------------------------------
+
+
+#' ## DEPTH_FT
+
 #' Let's take a look:  
-summary(ps$depth.feet)
-sort(unique(ps$depth.feet))
-#' start with blanks. How many rows have no depth.feet
-sum(ps$depth.feet == "") #73279
+summary(ps$DEPTH_FT)
+sort(unique(ps$DEPTH_FT))
+#' start with blanks. How many rows have no DEPTH_FT
+sum(ps$DEPTH_FT == "") #90807
 
-#' Lets do some not.sampled assignment
-#' How many cases of not.sampled show up?
+# these are not depths--
+sort(unique(ps$DEPTH_FT))[c(2:3,345:445)]
+ps[ is.na(match(ps[,DEPTH_FT], sort(unique(ps$DEPTH_FT))[c(2:3,345:445)])) == F , DEPTH_FT := "",]
+
+
+
+#' Lets do some not_sampled assignment
+#' How many cases of not_sampled show up?
 # how many cases (130)
-sum(
-  ps$depth.feet ==  "land" |
-    ps$depth.feet ==  "LAND" |
-    ps$depth.feet ==  "S"|
-    ps$depth.feet ==  "TD"|
-    ps$depth.feet ==  "TS"|
-    ps$depth.feet ==  "x"|
-    ps$depth.feet ==  "X"|
-    ps$depth.feet ==  "beach"|
-    ps$depth.feet ==  "deep"|
-    ps$depth.feet ==  "under dock"|
-    ps$depth.feet ==  "dock"
-)
-#' how many of those are already marked not.sampled
-ps[
-  ps$depth.feet ==  "land" |
-    ps$depth.feet ==  "LAND" |
-    ps$depth.feet ==  "S"|
-    ps$depth.feet ==  "TD"|
-    ps$depth.feet ==  "TS"|
-    ps$depth.feet ==  "x"|
-    ps$depth.feet ==  "X"|
-    ps$depth.feet ==  "beach"|
-    ps$depth.feet ==  "deep"|
-    ps$depth.feet ==  "under dock"|
-    ps$depth.feet ==  "dock", c("depth.feet","depth.meter", "not.sampled", "depth.unkn")]
+sort(unique(ps$DEPTH_FT))[1000:1465][439:466][c(1:4,6,7,8,11,13:28)]
 
-#' Assign these "not.sampled" values of "X"
-ps[ ps$depth.feet ==  "land" |
-      ps$depth.feet ==  "LAND" |
-      ps$depth.feet ==  "S"|
-      ps$depth.feet ==  "TD"|
-      ps$depth.feet ==  "TS"|
-      ps$depth.feet ==  "x"|
-      ps$depth.feet ==  "X"|
-      ps$depth.feet ==  "beach"|
-      ps$depth.feet ==  "deep"|
-      ps$depth.feet ==  "under dock"|
-      ps$depth.feet ==  "dock", "not.sampled" ] <- "X"
+#' Assign these "not_sampled" values of "X"
+ps[ is.na(match(ps[,DEPTH_FT], sort(unique(ps$DEPTH_FT))[1000:1465][439:466][c(1:4,6,7,8,11,13:28)])) == F , not_sampled := "X" ,]
 
-#' assign them a blank for depth.feet
-ps[ 
-  ps$depth.feet ==  "land" |
-    ps$depth.feet ==  "LAND" |
-    ps$depth.feet ==  "S"|
-    ps$depth.feet ==  "TD"|
-    ps$depth.feet ==  "TS"|
-    ps$depth.feet ==  "x"|
-    ps$depth.feet ==  "X"|
-    ps$depth.feet ==  "beach"|
-    ps$depth.feet ==  "deep"|
-    ps$depth.feet ==  "under dock"|
-    ps$depth.feet ==  "dock", "depth.feet"] <- ""
+#' assign any non depth vals a blank for DEPTH_FT
+ps[ is.na(match(ps[,DEPTH_FT], sort(unique(ps$DEPTH_FT))[1000:1465][439:466])) == F , DEPTH_FT := "" ,]
 
 #' How'd we do?
-sort(unique(ps$depth.feet))
+sort(unique(ps$DEPTH_FT))
 
 #' Let's check out those zeroes 
-sum(ps$depth.feet == "0") 
-ps[ps$depth.feet == "0",c("datemv","datasourcemv","lknamemv")]
+sum(ps$DEPTH_FT == "0") 
+ps[ps$DEPTH_FT == "0",c("SURVEY_DATE","DATASOURCE","LAKE_NAME")]
 
-#' again, these zeroes appear to be being used as not.sampled indicators. Let's mark those rows as such:
+#' again, these zeroes appear to be being used as not_sampled indicators. Let's mark those rows as such:
 
-ps[ps$depth.feet == "0","not.sampled"] <- "X"
+ps[ps$DEPTH_FT == "0", not_sampled := "0"] 
 
-# and delete the zeroes from depth.feet column
-ps[ps$depth.feet == "0","depth.feet"] <- ""
+# and delete the zeroes from DEPTH_FT column
+ps[ps$DEPTH_FT == "0",DEPTH_FT := ""]
 
 #' How'd we do?
-sort(unique(ps$depth.feet))
+sort(unique(ps$DEPTH_FT))
 
 #' Whats the "3v" about
-ps[ps$depth.feet == "3v",c("datemv","datasourcemv","lknamemv")]
+ps[ps$DEPTH_FT == "3v",c("SURVEY_DATE","DATASOURCE","LAKE_NAME")]
 # lets change them back to 3
-ps[ps$depth.feet == "3v","depth.feet"] <- "3"
+ps[ps$DEPTH_FT == "3v","DEPTH_FT"] <- "3"
 
-#' depth.feet to character
-ps$depth.feet <- as.character(ps$depth.feet)
+# drop </> and spaces
+ps[ ,DEPTH_FT := gsub( ">", "",gsub("<", "", DEPTH_FT)) , ]
 
-# cases where depth.feet has a value for an NA marked .meter (we will want to fill these in (.meter blanks) with transformed ft values )
-sum(ps$depth.feet != "" &
-      is.na(ps$depth.meter) == T )
+ps[ ,DEPTH_FT := gsub(" ", "", DEPTH_FT) , ]
+
 
 #' what else do we need to tackle?  
-sort(unique(ps$depth.feet))
-length(ps$depth.feet == "")
+sort(unique(ps$DEPTH_FT))
+length(ps$DEPTH_FT == "")
 
-#' Set depth.feet as a numeric:
-ps$depth.feet <- as.numeric(ps$depth.feet)
-summary(ps$depth.feet)
+#' Set DEPTH_FT as a numeric:
+ps$DEPTH_FT <- as.numeric(ps$DEPTH_FT)
+summary(ps$DEPTH_FT)
 
 #' Visualize results  
-hist(ps$depth.feet, freq = T, breaks = seq(0,120,1))
-hist(ps$depth.feet, freq = T, breaks = seq(0,120,1), xlim = c(0,40) )
-hist(ps$depth.feet, freq = T, breaks = seq(0,120,1), xlim = c(0,60), ylim = c(0,10) )
+hist(ps$DEPTH_FT, freq = T, breaks = seq(0,203,1))
 
 #' who input depths greater than 50 feet?
-ps[is.na(ps$depth.feet) == F &
-     ps$depth.feet > 50 , c("depth.feet", "datemv", "datasourcemv", "lknamemv")]
-# the 100' from kohlman was an indicator for no depth measured, lets delete those data (set as NA to be deleted later)
-ps[is.na(ps$depth.feet) == F &
-     ps$depth.feet == 100 , "depth.feet"] <- NA
-# the 119.8 from brasch should be 19.8
-ps[is.na(ps$depth.feet) == F &
-     ps$depth.feet == 119.8 , "depth.feet"] <- 19.8
+ps[is.na(ps$DEPTH_FT) == F &
+     ps$DEPTH_FT > 50 , c("DEPTH_FT", "SURVEY_DATE", "DATASOURCE", "LAKE_NAME")]
+# the 99.9's from Londo and 100's from kohlman was an indicator for no depth measured, lets delete those data (set as NA to be deleted later)
+ps[DEPTH_FT == "100" | DEPTH_FT == "99.9", DEPTH_FT := "0"]
+
 
 #' Visualize results  
-summary(ps$depth.feet)
-hist(ps$depth.feet, freq = T, breaks = seq(0,43,1))
+summary(ps$DEPTH_FT)
+hist(ps$DEPTH_FT, freq = T, breaks = seq(0,203,1))
 
 
-#' I guess that pretty much wraps up the depth.feet column 
+#' I guess that pretty much wraps up the DEPTH_FT column 
 
-#####
+
+# depth w/ unknown units --------------------------------------------------
 
 #' ## depth.unk
-##### 
+ 
 #' 
 #' Let's take a look:  
-summary(ps$depth.unkn)
-sort(unique(ps$depth.unkn))
-ps$depth.unkn <- as.character(ps$depth.unkn)
+summary(ps$depth_unk)
+sort(unique(ps$depth_unk))
+sort(unique(ps$depth_unk))[1000:1359]
 
-#' where there are two values, drop the second. It appears that the second value (after the comma) it used to either show either the same value, or to show a zero. Confirmed by visual inspection of the data (seems like they are coming from Newman's "depth with plants" column). 
-sort(unique(word(string = ps$depth.unkn, start = 1, end = 1, sep = ","))) # check fn before applying it
-ps$depth.unkn <- word(string = ps$depth.unkn, start = 1, end = 1, sep = ",")
+#' where there are two values, drop the second. 
+ps[ , depth_unk := word(depth_unk, sep = ",") ,]
 
-#' whats in the not.sampled column for the cases where folks annotated reasons to not sample?
-sort(unique(ps$depth.unkn)) # we see 2,3 and 551:563 are these cases
-for (i in c(2:3,551:563) ) { print(ps[ps$depth.unkn == sort(unique(ps$depth.unkn))[i], "not.sampled"])}
-ps[ps$depth.unkn==".",c("datasourcemv", "lknamemv")]
+#' whats in the not_sampled column for the cases where folks annotated reasons to not sample?
+sort(unique(ps$depth_unk)) 
 
-# we want to assign "X" for the not.sampled values in those rows
-for (i in c(2:3,551:563) ) { ps[ps$depth.unkn == sort(unique(ps$depth.unkn))[i], "not.sampled"] <- "X"}
+# we want to assign "X" for the not_sampled values in those rows
+sort(unique(ps$depth_unk))[c(918:925,928:936)]
+ps[ is.na(match(ps[,depth_unk], sort(unique(ps$depth_unk))[c(918:925,928:936)])) == F ,  not_sampled := "X"]
 
-# now we want to delete all of those data from the depth.unkn col
-for (i in c(1:2) ) {ps[ps$depth.unkn == sort(unique(ps$depth.unkn))[2], "depth.unkn"] <- ""} # the sorted set will collapse as I remove values, so 2 iterations at 2 hits "." and "0"
-for (i in c(561:548) ) {ps[ps$depth.unkn == sort(unique(ps$depth.unkn))[i], "depth.unkn"] <- ""} #  delete values starting at tail to avoid troubles as above
 
-#' where did the dates all come from
-ps[ grep("-", ps$depth.unkn), "depth.unkn" ]
-unique(ps[ grep("-", ps$depth.unkn), c("datasourcemv", "lknamemv", "datemv") ]) # from a dustin survey in a column that should have been marked delete
-ps[ grep("-", ps$depth.unkn), "depth.unkn" ] <- ""
+# now we want to delete all of those data from the depth_unk col
+sort(unique(ps$depth_unk))[c(2,918:937)]
+ps[ is.na(match(ps[,depth_unk], sort(unique(ps$depth_unk))[c(2,918:937)])) == F ,  depth_unk := ""]
 
-#' convert depth.unkn to a numeric
-sort(unique(ps$depth.unkn))
-str(ps$depth.unkn) # needs to be chr for the as.numeric conv to go work (otherwise assigns level # as numeric value).
-ps$depth.unkn <- as.numeric(ps$depth.unkn)
+# Move zeros to not_sampled
+ps[depth_unk == "99.9", LAKE_NAME]
+ps[depth_unk == "0", not_sampled := "X"]
+ps[depth_unk == "0", depth_unk := ""]
+
+#' convert depth_unk to a numeric
+sort(unique(ps$depth_unk))
+ps$depth_unk <- as.numeric(ps$depth_unk)
+
+
+# convert all depths to feet ----------------------------------------------
 
 #' right.. now what?
-summary(ps$depth.meter)
-summary(ps$depth.feet)
-summary(ps$depth.unkn)
-hist(ps$depth.unkn, breaks = seq(0,240), xlim = c(0,40))
+summary(ps$depth_m)
+summary(ps$DEPTH_FT)
+summary(ps$depth_unk)
+hist(ps$depth_unk, breaks = seq(0,240), xlim = c(0,40))
 
 #' who did the unlabeled depths come from?
-nrow(unique(ps[is.na(ps$depth.unkn) == F,c ("lknamemv", "datasourcemv", "datemv")]))
-unique(ps[is.na(ps$depth.unkn) == F,c ("lknamemv", "datasourcemv", "datemv")])
-unique(ps[is.na(ps$depth.unkn) == F,c ("depth.feet", "depth.meter")]) # all of the depth.unkns have no data for other depths
+nrow(unique(ps[is.na(ps$depth_unk) == F,c ("LAKE_NAME", "DATASOURCE", "SURVEY_DATE")]))
+unique(ps[is.na(ps$depth_unk) == F,c ("DEPTH_FT", "depth_m", "depth_unk")]) # some of these already have a depth.
 
-#'Tease out who used meters and feet:  
-#crwd at mccarron: looks footy to me
-hist(ps[ps$datasourcemv == "crwd" &
-          is.na(ps$depth.unkn) == F, "depth.unkn"])
-ps[ps$datasourcemv == "crwd" &
-     is.na(ps$depth.unkn) == F, "depth.feet"] <- ps[ps$datasourcemv == "crwd" &
-                                                      is.na(ps$depth.unkn) == F, "depth.unkn"]
-#newman
-ps[ps$datasourcemv == "newman" &
-     is.na(ps$depth.unkn) == F, "depth.unkn"]   %>%
-  hist()
-summary(ps[ps$datasourcemv == "newman" &
-             is.na(ps$depth.unkn) == F, "depth.unkn"])
-ps[ps$datasourcemv == "newman" &
-     is.na(ps$depth.unkn) == F, "depth.meter"] <- ps[ps$datasourcemv == "newman" &
-                                                       is.na(ps$depth.unkn) == F, "depth.unkn"]
-#mccomas
-ps[ps$datasourcemv == "mccomas" &
-     is.na(ps$depth.unkn) == F, "depth.unkn"]   %>%
-  hist( breaks = seq(0,7,1))
-summary( ps[ps$datasourcemv == "mccomas" &
-              is.na(ps$depth.unkn) == F, "depth.unkn"])
-ps[ps$datasourcemv == "mccomas" &
-     is.na(ps$depth.unkn) == F, "depth.meter"] <- ps[ps$datasourcemv == "mccomas" &
-                                                       is.na(ps$depth.unkn) == F, "depth.unkn"]
-#dustin
-ps[ps$datasourcemv == "dustin" &
-     is.na(ps$depth.unkn) == F, "depth.unkn"]   %>%
-  summary()
-hist( ps[ps$datasourcemv == "dustin" &
-           is.na(ps$depth.unkn) == F, "depth.unkn"], xlim = c(0,40), breaks = seq(0,240,1) )
-ps[ps$datasourcemv == "dustin" &
-     is.na(ps$depth.unkn) == F, "depth.feet"] <- ps[ps$datasourcemv == "dustin" &
-                                                      is.na(ps$depth.unkn) == F, "depth.unkn"]
-#brasch
-ps[ps$datasourcemv == "brasch" &
-     is.na(ps$depth.unkn) == F, "depth.unkn"] %>% hist()
+# if you have a depth in ft, delete others
+ps[ is.na(DEPTH_FT) == F , depth_unk := NA ,]
+ps[ is.na(DEPTH_FT) == F , depth_m := NA,]
 
-summary(ps[ps$datasourcemv == "brasch" &
-             is.na(ps$depth.unkn) == F, "depth.unkn"])
-ps[ps$datasourcemv == "brasch" &
-     is.na(ps$depth.unkn) == F, "depth.meter"] <- ps[ps$datasourcemv == "brasch" &
-                                                       is.na(ps$depth.unkn) == F, "depth.unkn"]
-#' delete the depth.unkn column:
-#do any rows have a depth in the .unkn but not in .feet or .meter? NO! HOORAY!
-unique(ps[is.na(ps$depth.unkn) == F &
-            (is.na(ps$depth.meter) == T &
-               is.na(ps$depth.feet) == T ), c("datemv", "lknamemv", "datasourcemv") ]) 
-ps[,"depth.unkn"] <- NULL
+# roll all remaining depths in meters over into feet and drop the meters column form set
+summary(ps[ is.na(DEPTH_FT) == T & is.na(depth_m) == F, depth_m ,])
+ps[ is.na(DEPTH_FT) == T & is.na(depth_m) == F, DEPTH_FT := 3.28084*depth_m ,]
+ps[ is.na(DEPTH_FT) == F , depth_m := NA,]
+summary(ps$depth_m)
+ps[ , depth_m:= NULL ,]
 
-##### 
 
-#' ## combining depths
-######
-#' Now we want to retify the depth columns into one. I will use depth.meter as my preferred. Let start by checking out the agreeance between the two columns:
-#' 
-# where we have a foot value and a meter value, do they agree?
-plot(ps$depth.meter*3.28084~ps$depth.feet, xlim = c(0,50), ylim = c(0,50))
-abline(a = 0, b = 1, col = "red") # good agreeance
+#'Tease out who used meters and feet in the depth unk column:  
+a <- ps[is.na(depth_unk)== F, .("max" = max(depth_unk), "median" = median(depth_unk)) , .( LAKE_NAME, SURVEY_DATE, DATASOURCE)]
 
-summary(ps$depth.meter)
-hist(ps$depth.meter)
+# pick a unit by surveyor
+a
+# units are feet:
+ps[is.na(depth_unk)== F & 
+     DATASOURCE == "Allison Gamble", DEPTH_FT := depth_unk]
+ps[is.na(depth_unk)== F & 
+     DATASOURCE == "Andrea Prichard", DEPTH_FT := depth_unk]
+ps[is.na(depth_unk)== F & 
+     DATASOURCE == "Andrea Prichard_19", DEPTH_FT := depth_unk]
+ps[is.na(depth_unk)== F & 
+     DATASOURCE == "April Londo", DEPTH_FT := depth_unk]
+ps[is.na(depth_unk)== F & 
+     DATASOURCE == "Britta Belden", DEPTH_FT := depth_unk]
+ps[is.na(depth_unk)== F & 
+     DATASOURCE == "crwd", DEPTH_FT := depth_unk]
+ps[is.na(depth_unk)== F & 
+     DATASOURCE == "dustin", DEPTH_FT := depth_unk]
+ps[is.na(depth_unk)== F & 
+     DATASOURCE == "Meg Rattei_19", DEPTH_FT := depth_unk]
 
-summary(ps$depth.feet)
-hist(ps$depth.feet)
-hist(ps$depth.feet, ylim = c(0,10))
-#check out values >50
-ps[is.na(ps$depth.feet) == F &
-     ps$depth.feet > 50, c("depth.feet", "lknamemv", "datasourcemv", "datemv") ]
-# all legit except the carrie depth, delete that one
-ps[is.na(ps$depth.feet) == F &
-     ps$depth.feet == 185.0 , "depth.feet"] <- NA
+# units were meters:
+ps[is.na(depth_unk)== F & 
+     DATASOURCE == "brasch", DEPTH_FT := 3.28084*depth_unk]
+ps[is.na(depth_unk)== F & 
+     DATASOURCE == "James Johnson", DEPTH_FT := 3.28084*depth_unk]
+ps[is.na(depth_unk)== F & 
+     DATASOURCE == "mccomas", DEPTH_FT := 3.28084*depth_unk]
+ps[is.na(depth_unk)== F & 
+     DATASOURCE == "Jill Sweet", DEPTH_FT := 3.28084*depth_unk]
+ps[is.na(depth_unk)== F & 
+     DATASOURCE == "newman", DEPTH_FT := 3.28084*depth_unk]
+ps[is.na(depth_unk)== F & 
+     DATASOURCE == "Rob Brown", DEPTH_FT := 3.28084*depth_unk]
 
-#' Based on this, if I overwrite the meter depth in here, I don't care (they will be the same anyways)
-summary(ps$depth.meter)
+# any more depth_unk data that we can use?
+ps[is.na(depth_unk) == F & is.na(DEPTH_FT) == T , depth_unk ]
 
-for (i in 1:nrow(ps)) {
-  # i = 1
-  if (is.na(ps$depth.meter[i]) == T) {
-    ps[i, "depth.meter"] <- (ps[i, "depth.feet"]*.3048)}
-}
-summary(ps$depth.meter)
+#delete depth_unk
+ps[ ,depth_unk := NULL , ]
 
-hist(ps$depth.meter, breaks = seq(0,73,1))
-hist(ps$depth.meter, breaks = seq(0,73,1), ylim = c(0,10))
+#these rows have no associated depth data:
+ps[ is.na(DEPTH_FT) == T , .N, .( LAKE_NAME, SURVEY_DATE, DATASOURCE) ]
 
-ps[,"depth.feet"] <- ps[,"depth.meter"]*3.28084
 
-summary(ps$depth.feet)
-hist(ps$depth.feet, breaks = seq(0,239.000,1))
-hist(ps$depth.feet, breaks = seq(0,239.000,1), xlim = c(0,30))
+# not_sampled -------------------------------------------------------------
 
-#####
+#likely they are "not sampled" points (the points from above[rows have no associated depth data])
+ps[ is.na(DEPTH_FT) == T , unique(not_sampled), .( LAKE_NAME, SURVEY_DATE, DATASOURCE) ]
+ps[ is.na(DEPTH_FT) == T , unique(not_sampled),  ]
 
-#' not.sampled
-#####
-unique(ps$not.sampled)
-ps$not.sampled <- as.character(ps$not.sampled)
-ps[ps$not.sampled != "","not.sampled"] <- "1"
-ps[ps$not.sampled == "","not.sampled"] <- "0"
-ps$not.sampled <- as.factor(ps$not.sampled)
-unique(ps$not.sampled)
-summary(ps$not.sampled)
+#' not_sampled
 
-#' are there places where depth.meter is NA and we havent marked the point as "not.sampled"?  
-nrow(ps[is.na(ps$depth.meter) == T &
-          ps$not.sampled == "0", ])
-#' it looks like these are the four brasch surveys with the "NI*" written in for depth and one dustin survey that is 
-#' failing to pull in the depths (they are the ones that come in as a date-- see depth.unkn section above).Therefor we will be removing 
-#' these rows from the dataset. 
-unique(ps[is.na(ps$depth.meter) == T &
-            ps$not.sampled == "0", c("lknamemv", "datasourcemv", "datemv")]) #
-ps <- subset(ps, is.na(ps$depth.meter) != T |
-               ps$not.sampled == "1" )
+unique(ps$not_sampled)
+ps[not_sampled != "" &
+     not_sampled != "0" ,not_sampled := "1"]
+ps[not_sampled != "1",not_sampled := "0" ]
+ps$not_sampled <- as.factor(ps$not_sampled)
+unique(ps$not_sampled)
+summary(ps$not_sampled)
+
+#' are there places where depth is NA and we havent marked the point as "not_sampled"?  
+nrow(ps[is.na(ps$DEPTH_FT) == T &
+          ps$not_sampled == "0", ])
+ps[is.na(ps$DEPTH_FT) == T &
+     ps$not_sampled == "0", .N ,.( LAKE_NAME, SURVEY_DATE, DATASOURCE) ]
+
+
+#' These survey points are failing to pull in the depths in my compiling. 
+#' Therefor we will be removing these rows from the dataset. 
+ps <- subset(ps, is.na(ps$DEPTH_FT) != T |
+               ps$not_sampled == "1" )
+
+
+# other point level features ----------------------------------------------
+
 #' Whats next?  
 names(ps)
-#####
 
-#' ## sample.taken
-#####
-summary(ps$sample.taken)
-sum(ps$sample.taken== "yes" & ps$not.sampled == "1") #sample taken is not useful to us...
-ps[,"sample.taken"] <- NULL
-#####
 
+#' ## sample_taken
+
+summary(ps$sample_taken)
+sum(ps$sample_taken== "yes" & ps$not_sampled == "1") #sample taken is not useful to us...
+ps[,sample_taken:= NULL]
+
+#' ## added_points these should be dropped in any analyses requiring unbiased locations
+#' 
+  ps[, unique(Added_point),] #whats in it?
+  ps[Added_point == "x", .N ,]
+  # points with suffixes on STA_NBR
+  ps[ , unique(STA_NBR) , ]
+  ps[, STA_NBR_suf := gsub("[0-9]", "", STA_NBR),] #nab any suffixes off station ids
+  ps[ , unique(STA_NBR_suf) ,]
+
+  #review the idents for those:
+  ps[  is.na(match(ps[,STA_NBR_suf], unique(STA_NBR_suf)[c(2,3,5:9)]  )) == F  , STA_NBR ,]
+
+  #and mark some as added points
+  ps[  is.na(match(ps[,STA_NBR_suf], unique(STA_NBR_suf)[c(3,7:9)]  )) == F  , Added_point := "x" ,]
+  
+  ps[Added_point == "x" , Added_point := "1" ,]
+  ps[Added_point != "1" , Added_point := "0" ,]
+  ps[ ,Added_point := as.factor(Added_point) ,]
+ 
+  summary(ps$Added_point)
+  
+  
 #' ## potamogeton.crispus
 #####
 ps$potamogeton.crispus <- factor(ps$potamogeton.crispus)
@@ -3206,10 +3070,10 @@ ps[ps$potamogeton.crispus == "dead" |
      ps$potamogeton.crispus == "X" , "potamogeton.crispus"] <- "0"
 ps[ps$potamogeton.crispus == "", "potamogeton.crispus"] <- "0"
 
-# where not.sampled, assign p.cri NA. Notice that this is nixing some data...
-unique(ps[ps$not.sampled == "1" &
+# where not_sampled, assign p.cri NA. Notice that this is nixing some data...
+unique(ps[ps$not_sampled == "1" &
             ps$potamogeton.crispus != "", c( "datasourcemv", "potamogeton.crispus", "datemv")])
-ps[ps$not.sampled == "1", "potamogeton.crispus"] <- NA
+ps[ps$not_sampled == "1", "potamogeton.crispus"] <- NA
 
 # re factor and view
 ps$potamogeton.crispus <- factor(ps$potamogeton.crispus, ordered = is.ordered(c(0,1,2,3,4,5)))
@@ -3253,10 +3117,10 @@ ps[ps$ceratophyllum.demersum == "4.5" , "ceratophyllum.demersum"] <- "5"
 ps[ps$ceratophyllum.demersum == "55" |
      ps$ceratophyllum.demersum == "58" , "ceratophyllum.demersum"] <- "5"
 
-#' where not.sampled, assign cer.dem NA. Notice that this is nixing some data...
-unique(ps[ps$not.sampled == "1" &
+#' where not_sampled, assign cer.dem NA. Notice that this is nixing some data...
+unique(ps[ps$not_sampled == "1" &
             ps$ceratophyllum.demersum != "", c( "datasourcemv", "ceratophyllum.demersum", "datemv")])
-ps[ps$not.sampled == "1", "ceratophyllum.demersum"] <- NA
+ps[ps$not_sampled == "1", "ceratophyllum.demersum"] <- NA
 
 # re factor and view
 ps$ceratophyllum.demersum <- factor(ps$ceratophyllum.demersum, ordered = is.ordered(c(0,1,2,3,4,5)))
@@ -3290,10 +3154,10 @@ ps[ps$myriophyllum.spicatum == "2.5",  "myriophyllum.spicatum"] <- "3"
 ps[ps$myriophyllum.spicatum == "3.5",  "myriophyllum.spicatum"] <- "4"
 ps[ps$myriophyllum.spicatum == "4.5",  "myriophyllum.spicatum"] <- "5"
 
-#' where not.sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not.sampled == "1" &
+#' where not_sampled, assign value of NA. Notice that this is nixing some data...
+unique(ps[ps$not_sampled == "1" &
             ps$myriophyllum.spicatum!= "", c( "datasourcemv", "myriophyllum.spicatum", "datemv")])
-ps[ps$not.sampled == "1", "myriophyllum.spicatum"] <- NA
+ps[ps$not_sampled == "1", "myriophyllum.spicatum"] <- NA
 
 # re factor and view
 ps$myriophyllum.spicatum <- factor(ps$myriophyllum.spicatum, ordered = is.ordered(c(0,1,2,3,4,5)))
@@ -3318,10 +3182,10 @@ sort(unique(ps$elodea.canadensis))
 hist(as.numeric(as.character(ps$elodea.canadensis)))
 ps[is.na(ps$elodea.canadensis) == T , "elodea.canadensis"] <- "0"
 
-#' where not.sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not.sampled == "1" &
+#' where not_sampled, assign value of NA. Notice that this is nixing some data...
+unique(ps[ps$not_sampled == "1" &
             ps$elodea.canadensis!= "", c( "datasourcemv", "elodea.canadensis", "datemv")])
-ps[ps$not.sampled == "1", "elodea.canadensis"] <- NA
+ps[ps$not_sampled == "1", "elodea.canadensis"] <- NA
 
 # re factor and view
 ps$elodea.canadensis <- factor(ps$elodea.canadensis, ordered = is.ordered(c(0,1,2,3,4,5)))
@@ -3348,10 +3212,10 @@ ps[ps$algae.filamentous == "1.5", "algae.filamentous"] <- "2"
 ps[ps$algae.filamentous == "2,2", "algae.filamentous"] <- "3"
 ps[ps$algae.filamentous == "4.5", "algae.filamentous"] <- "5"
 
-#' where not.sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not.sampled == "1" &
+#' where not_sampled, assign value of NA. Notice that this is nixing some data...
+unique(ps[ps$not_sampled == "1" &
             ps$algae.filamentous!= "", c( "datasourcemv", "algae.filamentous", "datemv")])
-ps[ps$not.sampled == "1", "algae.filamentous"] <- NA
+ps[ps$not_sampled == "1", "algae.filamentous"] <- NA
 
 # re factor and view
 ps$algae.filamentous <- factor(ps$algae.filamentous, ordered = is.ordered(c(0,1,2,3,4,5)))
@@ -3373,10 +3237,10 @@ sort(unique(ps$nymphaeaceae))
 hist(as.numeric(as.character(ps$nymphaeaceae)))
 ps[is.na(ps$nymphaeaceae) == T, "nymphaeaceae"] <- "0"
 
-#' where not.sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not.sampled == "1" &
+#' where not_sampled, assign value of NA. Notice that this is nixing some data...
+unique(ps[ps$not_sampled == "1" &
             ps$nymphaeaceae!= "", c( "datasourcemv", "nymphaeaceae", "datemv")])
-ps[ps$not.sampled == "1", "nymphaeaceae"] <- NA
+ps[ps$not_sampled == "1", "nymphaeaceae"] <- NA
 
 # re factor and view
 ps$nymphaeaceae <- factor(ps$nymphaeaceae, ordered = is.ordered(c(0,1,2,3,4,5)))
@@ -3398,12 +3262,12 @@ sort(unique(ps$potamogeton.foliosus))
 hist(as.numeric(as.character(ps$potamogeton.foliosus)))
 
 
-#' where not.sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not.sampled == "1" &
+#' where not_sampled, assign value of NA. Notice that this is nixing some data...
+unique(ps[ps$not_sampled == "1" &
             ps$potamogeton.foliosus!= "", c( "datasourcemv", "potamogeton.foliosus", "datemv")])
-ps[ps$not.sampled == "1", "potamogeton.foliosus"] <- NA
+ps[ps$not_sampled == "1", "potamogeton.foliosus"] <- NA
 ps[is.na(ps$potamogeton.foliosus) == T, "potamogeton.foliosus"] <- "0"
-ps[ps$not.sampled == "1", "potamogeton.foliosus"] <- NA
+ps[ps$not_sampled == "1", "potamogeton.foliosus"] <- NA
 
 # re factor and view
 ps$potamogeton.foliosus <- factor(ps$potamogeton.foliosus, ordered = is.ordered(c(0,1,2,3,4,5)))
@@ -3425,11 +3289,11 @@ sort(unique(ps$najas.flexilis))
 hist(as.numeric(as.character(ps$najas.flexilis)))
 
 
-#' where not.sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not.sampled == "1" &
+#' where not_sampled, assign value of NA. Notice that this is nixing some data...
+unique(ps[ps$not_sampled == "1" &
             ps$najas.flexilis!= "", c( "datasourcemv", "najas.flexilis", "datemv")])
 ps[is.na(ps$najas.flexilis) == T, "najas.flexilis"] <- "0"
-ps[ps$not.sampled == "1", "najas.flexilis"] <- NA
+ps[ps$not_sampled == "1", "najas.flexilis"] <- NA
 
 # re factor and view
 ps$najas.flexilis <- factor(ps$najas.flexilis, ordered = is.ordered(c(0,1,2,3,4,5)))
@@ -3451,11 +3315,11 @@ sort(unique(ps$vallisneria.americana))
 hist(as.numeric(as.character(ps$vallisneria.americana)))
 
 
-#' where not.sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not.sampled == "1" &
+#' where not_sampled, assign value of NA. Notice that this is nixing some data...
+unique(ps[ps$not_sampled == "1" &
             ps$vallisneria.americana!= "", c( "datasourcemv", "vallisneria.americana", "datemv")])
 ps[is.na(ps$vallisneria.americana) == T, "vallisneria.americana"] <- "0"
-ps[ps$not.sampled == "1", "vallisneria.americana"] <- NA
+ps[ps$not_sampled == "1", "vallisneria.americana"] <- NA
 
 # re factor and view
 ps$vallisneria.americana <- factor(ps$vallisneria.americana, ordered = is.ordered(c(0,1,2,3,4,5)))
@@ -3477,11 +3341,11 @@ sort(unique(ps$brasenia.schreberi))
 hist(as.numeric(as.character(ps$brasenia.schreberi)))
 
 
-#' where not.sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not.sampled == "1" &
+#' where not_sampled, assign value of NA. Notice that this is nixing some data...
+unique(ps[ps$not_sampled == "1" &
             ps$brasenia.schreberi!= "", c( "datasourcemv", "brasenia.schreberi", "datemv")])
 ps[is.na(ps$brasenia.schreberi) == T, "brasenia.schreberi"] <- "0"
-ps[ps$not.sampled == "1", "brasenia.schreberi"] <- NA
+ps[ps$not_sampled == "1", "brasenia.schreberi"] <- NA
 
 # re factor and view
 ps$brasenia.schreberi <- factor(ps$brasenia.schreberi, ordered = is.ordered(c(0,1,2,3,4,5)))
@@ -3506,11 +3370,11 @@ ps[ps$potamogeton.richardsonii == "", "potamogeton.richardsonii"] <- "0"
 # v's are zeros (visual obs in sblood dataset)
 ps[ps$potamogeton.richardsonii == "v", "potamogeton.richardsonii"] <- "0"
 
-#' where not.sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not.sampled == "1" &
+#' where not_sampled, assign value of NA. Notice that this is nixing some data...
+unique(ps[ps$not_sampled == "1" &
             ps$potamogeton.richardsonii!= "", c( "datasourcemv", "potamogeton.richardsonii", "datemv")])
 ps[is.na(ps$potamogeton.richardsonii) == T, "potamogeton.richardsonii"] <- "0"
-ps[ps$not.sampled == "1", "potamogeton.richardsonii"] <- NA
+ps[ps$not_sampled == "1", "potamogeton.richardsonii"] <- NA
 
 # re factor and view
 ps$potamogeton.richardsonii <- factor(ps$potamogeton.richardsonii, ordered = is.ordered(c(0,1,2,3,4,5)))
@@ -3544,11 +3408,11 @@ ps[is.na(ps$spirodela.polyrhiza) == F &
      ps$spirodela.polyrhiza== "0,0", "spirodela.polyrhiza"] <- "0"
 
 
-#' where not.sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not.sampled == "1" &
+#' where not_sampled, assign value of NA. Notice that this is nixing some data...
+unique(ps[ps$not_sampled == "1" &
             ps$spirodela.polyrhiza!= "", c( "datasourcemv", "spirodela.polyrhiza", "datemv")])
 ps[is.na(ps$spirodela.polyrhiza) == T, "spirodela.polyrhiza"] <- "0"
-ps[ps$not.sampled == "1", "spirodela.polyrhiza"] <- NA
+ps[ps$not_sampled == "1", "spirodela.polyrhiza"] <- NA
 
 # re factor and view
 ps$spirodela.polyrhiza <- factor(ps$spirodela.polyrhiza, ordered = is.ordered(c(0,1,2,3,4,5)))
@@ -3598,11 +3462,11 @@ ps[is.na(ps$nymphaea.odorata) == F &
 ps$nymphaea.odorata <- factor(ps$nymphaea.odorata)
 summary(ps$nymphaea.odorata)
 
-#' where not.sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not.sampled == "1" &
+#' where not_sampled, assign value of NA. Notice that this is nixing some data...
+unique(ps[ps$not_sampled == "1" &
             ps$nymphaea.odorata!= "", c( "datasourcemv", "nymphaea.odorata", "datemv")])
 ps[is.na(ps$nymphaea.odorata) == T, "nymphaea.odorata"] <- "0"
-ps[ps$not.sampled == "1", "nymphaea.odorata"] <- NA
+ps[ps$not_sampled == "1", "nymphaea.odorata"] <- NA
 
 # re factor and view
 ps$nymphaea.odorata <- factor(ps$nymphaea.odorata, ordered = is.ordered(c(0,1,2,3,4,5)))
@@ -3643,11 +3507,11 @@ ps[is.na(ps$chara.spp) == F &
 ps$chara.spp <- factor(ps$chara.spp)
 summary(ps$chara.spp)
 
-#' where not.sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not.sampled == "1" &
+#' where not_sampled, assign value of NA. Notice that this is nixing some data...
+unique(ps[ps$not_sampled == "1" &
             ps$chara.spp!= "", c( "datasourcemv", "chara.spp", "datemv")])
 ps[is.na(ps$chara.spp) == T, "chara.spp"] <- "0"
-ps[ps$not.sampled == "1", "chara.spp"] <- NA
+ps[ps$not_sampled == "1", "chara.spp"] <- NA
 
 # re factor and view
 ps$chara.spp <- factor(ps$chara.spp, ordered = is.ordered(c(0,1,2,3,4,5)))
@@ -3693,11 +3557,11 @@ for (i in (ps.rem.names)) {
   # ps[,i] <- factor(ps[,i])
   # summary(ps[,i])
   # 
-  #' where not.sampled, assign value of NA. Notice that this is nixing some data...
-  unique(ps[ps$not.sampled == "1" &
+  #' where not_sampled, assign value of NA. Notice that this is nixing some data...
+  unique(ps[ps$not_sampled == "1" &
               ps[,i]!= "", c( "datasourcemv", i, "datemv")])
   ps[is.na(ps[,i]) == T, i] <- "0"
-  ps[ps$not.sampled == "1", i] <- NA
+  ps[ps$not_sampled == "1", i] <- NA
   
   # re factor and view
   ps[,i] <- factor(ps[,i], ordered = is.ordered(c(0,1,2,3,4,5)))
