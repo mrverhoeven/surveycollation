@@ -3048,6 +3048,12 @@ ps[,sample_taken:= NULL]
  #' #Automate the rest:
  #' 
  #####
+ 
+ ps.taxa <- data.frame(ps[,24:219])
+ ps.taxa[is.na(ps.taxa)] <- 0
+ ps.taxa[ps.taxa==""] <- 0
+ ps.taxa[ps.taxa==0.5] <- 1
+ 
  str(ps)
  names (ps)
  ps[] <- lapply(ps[], as.character)
@@ -3056,9 +3062,9 @@ ps[,sample_taken:= NULL]
    # i = "Stuckenia pectinata"
    # i = "najas.spp"
    ps[,get(i)] 
-   set(ps, which(is.na(ps[,get(i)]) == T | ps[,get(i)] == "") , j = match(i,ps.taxa.names) , value = "0" ) 
+   set(ps, which(is.na(get(i)) == T | get(i) == "") , j = match(i,ps.taxa.names) , value = "0" ) 
    # round half integers up:
-   ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "0.5", (get(i))] <- "1"
+   ps[is.na(get(i)) == F & get(i) == "0.5", get(i) := "1"]
    ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "1.5", get(i)] <- "2"
    ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "2.5", get(i)] <- "3"
    ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "3.5", get(i)] <- "4"
