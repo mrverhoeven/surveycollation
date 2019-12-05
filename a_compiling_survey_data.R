@@ -3022,13 +3022,124 @@ ps[,sample_taken:= NULL]
   ps[Added_point == "x" , Added_point := "1" ,]
   ps[Added_point != "1" , Added_point := "0" ,]
   ps[ ,Added_point := as.factor(Added_point) ,]
- 
+  ps[ , STA_NBR_suf:= NULL]
+  
   summary(ps$Added_point)
   
+#' ## delete column
+ ps[ , delete := NULL , ]  
   
-#' ## potamogeton.crispus
-#####
-ps$potamogeton.crispus <- factor(ps$potamogeton.crispus)
+  
+
+
+# Clean taxa columns up ---------------------------------------------------
+
+ 
+ dt <- data.table(mtcars)[,.(cyl, mpg)]
+ myfunc <- function(dt, v) {
+   v2=deparse(substitute(v))
+   dt[,v2, with=F][[1]] # [[1]] returns a vector instead of a data.table
+ }
+ 
+ myfunc(dt, mpg)
+ 
+ 
+ 
+ #' #Automate the rest:
+ #' 
+ #####
+ str(ps)
+ names (ps)
+ ps[] <- lapply(ps[], as.character)
+ ps.taxa.names <- names(ps)[c(24:219 )]
+ for (i in (ps.taxa.names)) { 
+   # i = "Stuckenia pectinata"
+   # i = "najas.spp"
+   ps[,get(i)] 
+   set(ps[is.na(ps[,get(i)]) == T | ps[,get(i)] == "" ,], j = get(i) , value = "0" ) 
+   # round half integers up:
+   ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "0.5", (get(i))] <- "1"
+   ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "1.5", get(i)] <- "2"
+   ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "2.5", get(i)] <- "3"
+   ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "3.5", get(i)] <- "4"
+   ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "4.5", get(i)] <- "5"
+   
+   # delete any non integer values
+   ps[is.na(ps[, get(i)]) == F & 
+        (ps[, get(i)] == "" |
+           ps[, get(i)] != "0"&
+           ps[, get(i)] != "1"&
+           ps[, get(i)] != "2"&
+           ps[, get(i)] != "3"&
+           ps[, get(i)] != "4"&
+           ps[, get(i)] != "5"), get(i)] <- "0"
+   
+   # ps[,i] <- factor(ps[,i])
+   # summary(ps[,i])
+   # 
+   #' where not_sampled, assign value of NA. Notice that this is nixing some data...
+   unique(ps[ps$not_sampled == "1" &
+               ps[,i]!= "", c( "datasourcemv", get(i), "datemv")])
+   ps[is.na(ps[,i]) == T, get(i)] <- "0"
+   ps[ps$not_sampled == "1", get(i)] <- NA
+   
+   # re factor and view
+   ps[,i] <- factor(ps[,i], ordered = is.ordered(c(0,1,2,3,4,5)))
+   # summary(ps[,i])
+   # sort(unique(ps[,i]))
+   hist(as.numeric(as.character(ps[,i])))
+   plot(ps$depth.meter~ps[,i], ylim = c(0,20), main = i)
+   print(i)
+ }
+ 
+ par(mfrow = c(3,3))
+ for (i in names(ps)) {
+   plot(ps$depth.meter~ps[,i], ylim = c(0,20), main = i)
+ }
+ 
+ 
+ 
+ #' Save progress as a .csv file in the clp_surveys folder  
+ # write.csv(ps, file = "data/output_data/state_clp_comp_cleaned.csv", row.names = F)  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+# old code for cleaning up taxa -------------------------------------------
+
+
+ 
+ 
+ 
+ 
+ ps$potamogeton.crispus <- factor(ps$"Potamogeton crispus")
+
+
+ 
+ 
+ 
+ 
+ #' ## potamogeton.crispus
+
+
 summary(ps$potamogeton.crispus)
 sort(unique(ps$potamogeton.crispus))
 hist(as.numeric(as.character(ps$potamogeton.crispus)))
@@ -3083,7 +3194,7 @@ hist(as.numeric(as.character(ps$potamogeton.crispus)))
 plot(depth.meter~potamogeton.crispus, data = ps)
 
 
-#####
+
 
 #' ## ceratophyllum.demersum
 #' 
