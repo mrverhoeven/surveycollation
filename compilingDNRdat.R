@@ -40,7 +40,7 @@
 #' ### Shallow Lakes Program
   # shallow lakes data
   
-  sldat <- fread(file = "data/contributor_data/macroniche_adds/muthukrishnan/Lake_plant_diversity_data.csv") # use data.table to pull in dataset
+  sldat <- fread(file = "data/input/contributor_data/macroniche_adds/muthukrishnan/Lake_plant_diversity_data.csv") # use data.table to pull in dataset
   
   names(sldat) #view the names within the sldats datatable
 
@@ -83,7 +83,7 @@
   
   # fisheries data
   
-  fshdat <- fread(file = "data/contributor_data/macroniche_adds/dustin/FishDat.csv")
+  fshdat <- fread(file = "data/input/contributor_data/macroniche_adds/dustin/FishDat.csv")
 
   #need to melt this guy
   #' Now we need to reshape this behemoth...
@@ -158,7 +158,7 @@
 #' ### Lakes and Rivers Program
   # lnr data
   
-  lnrdat <- fread(file = "data/contributor_data/macroniche_adds/perleberg/LakePlant export 20190701 finalql.csv")
+  lnrdat <- fread(file = "data/input/contributor_data/macroniche_adds/perleberg/LakePlant export 20190701 finalql.csv")
   
   names(lnrdat)
   
