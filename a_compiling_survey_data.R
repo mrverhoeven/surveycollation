@@ -2491,7 +2491,7 @@ sort(names(ps))
 
 # progress checkpoint -----------------------------------------------------
 
-#' save progress as a .csv file in the clp_surveys folder
+#' save progress as a .csv file in the output folder
 
 # write.csv(ps, file = "data/output/surveys_columns_united.csv")
 #ps <- fread(input = "data/output/surveys_columns_united.csv")
@@ -2997,17 +2997,19 @@ ps <- subset(ps, is.na(ps$DEPTH_FT) != T |
 #' Whats next?  
 names(ps)
 
-
 #' ## sample_taken
 
 summary(ps$sample_taken)
 sum(ps$sample_taken== "yes" & ps$not_sampled == "1") #sample taken is not useful to us...
 ps[,sample_taken:= NULL]
 
-#' ## added_points these should be dropped in any analyses requiring unbiased locations
+#' ## added_points these should be dropped. these are biased locations
 #' 
   ps[, unique(Added_point),] #whats in it?
   ps[Added_point == "x", .N ,]
+  ps[Added_point == "x", 1:25,]
+
+  
   # points with suffixes on STA_NBR
   ps[ , unique(STA_NBR) , ]
   ps[, STA_NBR_suf := gsub("[0-9]", "", STA_NBR),] #nab any suffixes off station ids
@@ -3025,6 +3027,9 @@ ps[,sample_taken:= NULL]
   ps[ , STA_NBR_suf:= NULL]
   
   summary(ps$Added_point)
+  ps <- ps[Added_point != "1", ,]
+  ps[ ,Added_point:= NULL , ]
+  
   
 #' ## delete column
  ps[ , delete := NULL , ]  
@@ -3034,679 +3039,110 @@ ps[,sample_taken:= NULL]
 
 # Clean taxa columns up ---------------------------------------------------
 
+
  
- dt <- data.table(mtcars)[,.(cyl, mpg)]
- myfunc <- function(dt, v) {
-   v2=deparse(substitute(v))
-   dt[,v2, with=F][[1]] # [[1]] returns a vector instead of a data.table
- }
+ names(ps)
+ ps.taxa <- data.frame(ps[,23:218])
+ ps.taxa[is.na(ps.taxa)] <- "0"
+ ps.taxa[ps.taxa==""] <- "0"
+ ps.taxa[ps.taxa=="0.5"] <- "1"
+ ps.taxa[ps.taxa=="1.5"] <- "2"
+ ps.taxa[ps.taxa=="2.5"] <- "3"
+ ps.taxa[ps.taxa=="3.5"] <- "4"
+ ps.taxa[ps.taxa=="4.5"] <- "5"
  
- myfunc(dt, mpg)
+ ps.taxa[ps.taxa != "0"&
+           ps.taxa != "1"&
+           ps.taxa != "2"&
+           ps.taxa != "3"&
+           ps.taxa != "4"&
+           ps.taxa != "5"] <- "0"
  
- system.time(for (i in 1:1000) set(DT,i,1L,i))
+ ps.taxa[] <- lapply(ps.taxa[], factor)
  
- #' #Automate the rest:
- #' 
- #####
+ summary(ps.taxa)
  
- ps.taxa <- data.frame(ps[,24:219])
- ps.taxa[is.na(ps.taxa)] <- 0
- ps.taxa[ps.taxa==""] <- 0
- ps.taxa[ps.taxa==0.5] <- 1
+ ps[ , 23:218 := ps.taxa ,]
  
  str(ps)
- names (ps)
- ps[] <- lapply(ps[], as.character)
- ps.taxa.names <- names(ps)[c(24:219 )]
- for (i in (ps.taxa.names)) { 
-   # i = "Stuckenia pectinata"
-   # i = "najas.spp"
-   ps[,get(i)] 
-   set(ps, which(is.na(get(i)) == T | get(i) == "") , j = match(i,ps.taxa.names) , value = "0" ) 
-   # round half integers up:
-   ps[is.na(get(i)) == F & get(i) == "0.5", get(i) := "1"]
-   ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "1.5", get(i)] <- "2"
-   ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "2.5", get(i)] <- "3"
-   ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "3.5", get(i)] <- "4"
-   ps[is.na(ps[, get(i)]) == F & ps[, get(i)] == "4.5", get(i)] <- "5"
-   
-   # delete any non integer values
-   ps[is.na(ps[, get(i)]) == F & 
-        (ps[, get(i)] == "" |
-           ps[, get(i)] != "0"&
-           ps[, get(i)] != "1"&
-           ps[, get(i)] != "2"&
-           ps[, get(i)] != "3"&
-           ps[, get(i)] != "4"&
-           ps[, get(i)] != "5"), get(i)] <- "0"
-   
-   # ps[,i] <- factor(ps[,i])
-   # summary(ps[,i])
-   # 
-   #' where not_sampled, assign value of NA. Notice that this is nixing some data...
-   unique(ps[ps$not_sampled == "1" &
-               ps[,i]!= "", c( "datasourcemv", get(i), "datemv")])
-   ps[is.na(ps[,i]) == T, get(i)] <- "0"
-   ps[ps$not_sampled == "1", get(i)] <- NA
-   
-   # re factor and view
-   ps[,i] <- factor(ps[,i], ordered = is.ordered(c(0,1,2,3,4,5)))
+ 
+ 
    # summary(ps[,i])
    # sort(unique(ps[,i]))
-   hist(as.numeric(as.character(ps[,i])))
-   plot(ps$depth.meter~ps[,i], ylim = c(0,20), main = i)
+   hist(as.numeric(ps[,`Myriophyllum spicatum`]))
+   plot(ps$DEPTH_FT~ps[,`Myriophyllum spicatum`], main = "EWM")
    print(i)
- }
- 
- par(mfrow = c(3,3))
- for (i in names(ps)) {
-   plot(ps$depth.meter~ps[,i], ylim = c(0,20), main = i)
- }
- 
- 
- 
- #' Save progress as a .csv file in the clp_surveys folder  
- # write.csv(ps, file = "data/output_data/state_clp_comp_cleaned.csv", row.names = F)  
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
+
+
+# progress checkpoint -----------------------------------------------------
+
+
+ #' Save progress 
+   
+   #write.csv(ps, file = "data/output/surveys_columns_cleaned.csv", row.names = F)
+   #ps <- fread(input = "data/output/surveys_columns_cleaned.csv")
  
 
-# old code for cleaning up taxa -------------------------------------------
+# melt data to be wide format ---------------------------------------------
 
-
+   #all of these data are considered to have been sampled
+   names(ps)
+   ps[,sampled := 1]
+   ps[,sampled := as.integer(sampled)]
+   str(ps$sampled)
+   
+   
+   # retain the point ID chars and the depth, then make data long (new row for every observation of a species)
+   ps_1 = melt(ps, id.vars = c(1:22),
+                   variable.name = "taxon", value.name = "rake" )
+   
+   #drop all of the zeros (not observed) in this plant data. because we tossed in a 
+   ps_2 <- ps_1[rake > 0,] # retain only rows with pres > 0
+   str(ps_2)
  
- 
- 
- 
- ps$potamogeton.crispus <- factor(ps$"Potamogeton crispus")
 
 
- 
- 
- 
- 
- #' ## potamogeton.crispus
-
-
-summary(ps$potamogeton.crispus)
-sort(unique(ps$potamogeton.crispus))
-hist(as.numeric(as.character(ps$potamogeton.crispus)))
-#' who used the X and x?  sblood and mccomas and I think both are zeroes based on looking at the data. 
-ps[ps$potamogeton.crispus == "X" |
-     ps$potamogeton.crispus == "x", c( "lknamemv", "datemv", "datasourcemv")]
-# ' and the other goofy values - half integers, #v, etc? it looks like mccomas is our main culprit, and the numbers should all be rounded up
-ps[ps$potamogeton.crispus == "0.5" |
-     ps$potamogeton.crispus == "1.01" |
-     ps$potamogeton.crispus == "1.3" |
-     ps$potamogeton.crispus == "1.5" |
-     ps$potamogeton.crispus == "1.8" |
-     ps$potamogeton.crispus == "1V" |
-     ps$potamogeton.crispus == "2.3" |
-     ps$potamogeton.crispus == "2.8" |
-     ps$potamogeton.crispus == "3.5" |
-     ps$potamogeton.crispus == "4.5" ,
-   c( "potamogeton.crispus", "lknamemv", "datemv", "datasourcemv")]
-# does mccomas us a 1-4 or 1-5 scale? one to 5
-max(as.numeric(as.character(ps[ps$datasourcemv == "mccomas","potamogeton.crispus"])), na.rm = T)
-hist(as.numeric(as.character(ps[ps$datasourcemv == "mccomas","potamogeton.crispus"])))
-summary(ps$potamogeton.crispus) 
-#' replace wierd vals with correct ones:
-ps[ps$potamogeton.crispus == "0.5" |
-     ps$potamogeton.crispus == "1.01", "potamogeton.crispus"] <- "1"
-ps[ps$potamogeton.crispus == "1.3" |
-     ps$potamogeton.crispus == "1.5"|
-     ps$potamogeton.crispus == "1.8" |
-     ps$potamogeton.crispus == "1V", "potamogeton.crispus"] <- "2"
-ps[ps$potamogeton.crispus == "2.3" |
-     ps$potamogeton.crispus == "2.5" |
-     ps$potamogeton.crispus == "2.8", "potamogeton.crispus" ] <- "3"
-ps[ps$potamogeton.crispus == "3.5" , "potamogeton.crispus"] <- "4"
-ps[ps$potamogeton.crispus == "4.5", "potamogeton.crispus"] <- "5"
-ps[ps$potamogeton.crispus == "dead" |
-     ps$potamogeton.crispus == "Dead" |
-     ps$potamogeton.crispus == "V" |
-     ps$potamogeton.crispus == "x" |
-     ps$potamogeton.crispus == "X" , "potamogeton.crispus"] <- "0"
-ps[ps$potamogeton.crispus == "", "potamogeton.crispus"] <- "0"
-
-# where not_sampled, assign p.cri NA. Notice that this is nixing some data...
-unique(ps[ps$not_sampled == "1" &
-            ps$potamogeton.crispus != "", c( "datasourcemv", "potamogeton.crispus", "datemv")])
-ps[ps$not_sampled == "1", "potamogeton.crispus"] <- NA
-
-# re factor and view
-ps$potamogeton.crispus <- factor(ps$potamogeton.crispus, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$potamogeton.crispus)
-sort(unique(ps$potamogeton.crispus))
-hist(as.numeric(as.character(ps$potamogeton.crispus)))
-plot(depth.meter~potamogeton.crispus, data = ps)
-
-
-
-
-#' ## ceratophyllum.demersum
-#' 
-#####
-ps$ceratophyllum.demersum <- factor(ps$ceratophyllum.demersum)
-summary(ps$ceratophyllum.demersum)
-sort(unique(ps$ceratophyllum.demersum))
-ps[ps$ceratophyllum.demersum == "", "ceratophyllum.demersum"] <- "0"
-hist(as.numeric(as.character(ps$ceratophyllum.demersum)), breaks = c(0:5, 100), xlim = c(0,10))
-#' who used the X? sblood done it and I think both are zeroes based on potamogeton.crispus parallel situation. 
-ps[ps$ceratophyllum.demersum == "X" |
-     ps$ceratophyllum.demersum == "x", c( "lknamemv", "datemv", "datasourcemv")]
-ps[ps$ceratophyllum.demersum == "X","ceratophyllum.demersum"] <- "0"
-#' and the other goofy values - half integers, 55, 58? it looks like mccomas is our main culprit, and the numbers should all be 
-#' rounded up (see explanation in potamogeton.crispus, above). the 55 came from brasch and 58 from newman - both should be 5 via
-#' looking at datasheets. 
-ps[ps$ceratophyllum.demersum == "0.5" |
-     ps$ceratophyllum.demersum == "1.5" |
-     ps$ceratophyllum.demersum == "2.5" |
-     ps$ceratophyllum.demersum == "3.5" |
-     ps$ceratophyllum.demersum == "4.5" |
-     ps$ceratophyllum.demersum == "55" |
-     ps$ceratophyllum.demersum == "58" ,
-   c( "ceratophyllum.demersum", "lknamemv", "datemv", "datasourcemv")]
-#' corrrecting the weird vals:
-ps[ps$ceratophyllum.demersum == "0.5" , "ceratophyllum.demersum"] <- "1"
-ps[ps$ceratophyllum.demersum == "1.5" , "ceratophyllum.demersum"] <- "2"
-ps[ps$ceratophyllum.demersum == "2.5" , "ceratophyllum.demersum"] <- "3"
-ps[ps$ceratophyllum.demersum == "3.5" , "ceratophyllum.demersum"] <- "4"
-ps[ps$ceratophyllum.demersum == "4.5" , "ceratophyllum.demersum"] <- "5"
-ps[ps$ceratophyllum.demersum == "55" |
-     ps$ceratophyllum.demersum == "58" , "ceratophyllum.demersum"] <- "5"
-
-#' where not_sampled, assign cer.dem NA. Notice that this is nixing some data...
-unique(ps[ps$not_sampled == "1" &
-            ps$ceratophyllum.demersum != "", c( "datasourcemv", "ceratophyllum.demersum", "datemv")])
-ps[ps$not_sampled == "1", "ceratophyllum.demersum"] <- NA
-
-# re factor and view
-ps$ceratophyllum.demersum <- factor(ps$ceratophyllum.demersum, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$ceratophyllum.demersum)
-
-sort(unique(ps$ceratophyllum.demersum))
-hist(as.numeric(as.character(ps$ceratophyllum.demersum)))
-plot(depth.meter~ceratophyllum.demersum, data = ps, ylim = c(0,20))
-ggplot(ps, aes(x= ceratophyllum.demersum, y = depth.meter))+
-  geom_violin(aes(ceratophyllum.demersum))
-
-#####  
-
-
-#' ## myriophyllum.spicatum
-#' 
-#####
-ps$myriophyllum.spicatum <- factor(ps$myriophyllum.spicatum)
-summary(ps$myriophyllum.spicatum)
-sort(unique(ps$myriophyllum.spicatum))
-hist(as.numeric(as.character(ps$myriophyllum.spicatum)))
-
-#' whats up with the v and the half values?
-ps[ps$myriophyllum.spicatum == "v" |
-     ps$myriophyllum.spicatum == "0.5", c( "myriophyllum.spicatum", "lknamemv", "datemv", "datasourcemv")]
-# the v's are going to become 0s... I think they are visual obs. And the half integers are steve's... will correct as in p.cri
-ps[ps$myriophyllum.spicatum == "v" , "myriophyllum.spicatum"] <- "0"
-ps[ps$myriophyllum.spicatum == "0.5",  "myriophyllum.spicatum"] <- "1"
-ps[ps$myriophyllum.spicatum == "1.5",  "myriophyllum.spicatum"] <- "2"
-ps[ps$myriophyllum.spicatum == "2.5",  "myriophyllum.spicatum"] <- "3"
-ps[ps$myriophyllum.spicatum == "3.5",  "myriophyllum.spicatum"] <- "4"
-ps[ps$myriophyllum.spicatum == "4.5",  "myriophyllum.spicatum"] <- "5"
-
-#' where not_sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not_sampled == "1" &
-            ps$myriophyllum.spicatum!= "", c( "datasourcemv", "myriophyllum.spicatum", "datemv")])
-ps[ps$not_sampled == "1", "myriophyllum.spicatum"] <- NA
-
-# re factor and view
-ps$myriophyllum.spicatum <- factor(ps$myriophyllum.spicatum, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$myriophyllum.spicatum)
-ps[is.na(ps$myriophyllum.spicatum) == F &
-     ps$myriophyllum.spicatum == "", "myriophyllum.spicatum"] <- "0"
-ps$myriophyllum.spicatum <- factor(ps$myriophyllum.spicatum, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$myriophyllum.spicatum) 
-sort(unique(ps$myriophyllum.spicatum))
-hist(as.numeric(as.character(ps$myriophyllum.spicatum)))
-plot(depth.meter~myriophyllum.spicatum, data = ps, ylim = c(0,20))
-ggplot(ps, aes(x= myriophyllum.spicatum, y = depth.meter))+
-  geom_violin(aes(myriophyllum.spicatum))
-#####
-
-#' ## elodea.canadensis
-#' 
-#####
-ps$elodea.canadensis <- factor(ps$elodea.canadensis)
-summary(ps$elodea.canadensis)
-sort(unique(ps$elodea.canadensis))
-hist(as.numeric(as.character(ps$elodea.canadensis)))
-ps[is.na(ps$elodea.canadensis) == T , "elodea.canadensis"] <- "0"
-
-#' where not_sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not_sampled == "1" &
-            ps$elodea.canadensis!= "", c( "datasourcemv", "elodea.canadensis", "datemv")])
-ps[ps$not_sampled == "1", "elodea.canadensis"] <- NA
-
-# re factor and view
-ps$elodea.canadensis <- factor(ps$elodea.canadensis, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$elodea.canadensis)
-sort(unique(ps$elodea.canadensis))
-hist(as.numeric(as.character(ps$elodea.canadensis)))
-plot(depth.meter~elodea.canadensis, data = ps, ylim = c(0,20))
-ggplot(ps, aes(x= elodea.canadensis, y = depth.meter))+
-  geom_violin(aes(elodea.canadensis))
-#####
-
-#' ## algae.filamentous
-#' 
-#####
-ps$algae.filamentous <- factor(ps$algae.filamentous)
-summary(ps$algae.filamentous)
-sort(unique(ps$algae.filamentous))
-hist(as.numeric(as.character(ps$algae.filamentous)))
-ps[ps$algae.filamentous == "", "algae.filamentous"] <- "0"
-
-# get rid of half-integers
-ps[ps$algae.filamentous == "0.5", "algae.filamentous"] <- "1"
-ps[ps$algae.filamentous == "1.5", "algae.filamentous"] <- "2"
-ps[ps$algae.filamentous == "2,2", "algae.filamentous"] <- "3"
-ps[ps$algae.filamentous == "4.5", "algae.filamentous"] <- "5"
-
-#' where not_sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not_sampled == "1" &
-            ps$algae.filamentous!= "", c( "datasourcemv", "algae.filamentous", "datemv")])
-ps[ps$not_sampled == "1", "algae.filamentous"] <- NA
-
-# re factor and view
-ps$algae.filamentous <- factor(ps$algae.filamentous, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$algae.filamentous)
-sort(unique(ps$algae.filamentous))
-hist(as.numeric(as.character(ps$algae.filamentous)))
-plot(depth.meter~algae.filamentous, data = ps, ylim = c(0,20))
-ggplot(ps, aes(x= algae.filamentous, y = depth.meter))+
-  geom_violin(aes(algae.filamentous))
-
-##### 
-
-#' ## nymphaeaceae
-#' 
-#####
-ps$nymphaeacae <- as.factor(ps$nymphaeaceae)
-summary(ps$nymphaeaceae)
-sort(unique(ps$nymphaeaceae))
-hist(as.numeric(as.character(ps$nymphaeaceae)))
-ps[is.na(ps$nymphaeaceae) == T, "nymphaeaceae"] <- "0"
-
-#' where not_sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not_sampled == "1" &
-            ps$nymphaeaceae!= "", c( "datasourcemv", "nymphaeaceae", "datemv")])
-ps[ps$not_sampled == "1", "nymphaeaceae"] <- NA
-
-# re factor and view
-ps$nymphaeaceae <- factor(ps$nymphaeaceae, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$nymphaeaceae)
-sort(unique(ps$nymphaeaceae))
-hist(as.numeric(as.character(ps$nymphaeaceae)))
-plot(depth.meter~nymphaeaceae, data = ps, ylim = c(0,20))
-ggplot(ps, aes(x= nymphaeaceae, y = depth.meter))+
-  geom_violin(aes(nymphaeaceae))
-
-#####   
-
-#' ## potamogeton.foliosus
-#' 
-#####
-ps$potamogeton.foliosus <- as.factor(ps$potamogeton.foliosus)
-summary(ps$potamogeton.foliosus)
-sort(unique(ps$potamogeton.foliosus))
-hist(as.numeric(as.character(ps$potamogeton.foliosus)))
-
-
-#' where not_sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not_sampled == "1" &
-            ps$potamogeton.foliosus!= "", c( "datasourcemv", "potamogeton.foliosus", "datemv")])
-ps[ps$not_sampled == "1", "potamogeton.foliosus"] <- NA
-ps[is.na(ps$potamogeton.foliosus) == T, "potamogeton.foliosus"] <- "0"
-ps[ps$not_sampled == "1", "potamogeton.foliosus"] <- NA
-
-# re factor and view
-ps$potamogeton.foliosus <- factor(ps$potamogeton.foliosus, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$potamogeton.foliosus)
-sort(unique(ps$potamogeton.foliosus))
-hist(as.numeric(as.character(ps$potamogeton.foliosus)))
-plot(depth.meter~potamogeton.foliosus, data = ps, ylim = c(0,20))
-ggplot(ps, aes(x= potamogeton.foliosus, y = depth.meter))+
-  geom_violin(aes(potamogeton.foliosus))
-
-##### 
-
-#' ## najas.flexilis
-#' 
-#####
-ps$najas.flexilis <- as.factor(ps$najas.flexilis)
-summary(ps$najas.flexilis)
-sort(unique(ps$najas.flexilis))
-hist(as.numeric(as.character(ps$najas.flexilis)))
-
-
-#' where not_sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not_sampled == "1" &
-            ps$najas.flexilis!= "", c( "datasourcemv", "najas.flexilis", "datemv")])
-ps[is.na(ps$najas.flexilis) == T, "najas.flexilis"] <- "0"
-ps[ps$not_sampled == "1", "najas.flexilis"] <- NA
-
-# re factor and view
-ps$najas.flexilis <- factor(ps$najas.flexilis, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$najas.flexilis)
-sort(unique(ps$najas.flexilis))
-hist(as.numeric(as.character(ps$najas.flexilis)))
-plot(depth.meter~najas.flexilis, data = ps, ylim = c(0,20))
-ggplot(ps, aes(x= najas.flexilis, y = depth.meter))+
-  geom_violin(aes(najas.flexilis))
-
-##### 
-
-#' ## vallisneria.americana
-#' 
-#####
-ps$vallisneria.americana <- as.factor(ps$vallisneria.americana)
-summary(ps$vallisneria.americana)
-sort(unique(ps$vallisneria.americana))
-hist(as.numeric(as.character(ps$vallisneria.americana)))
-
-
-#' where not_sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not_sampled == "1" &
-            ps$vallisneria.americana!= "", c( "datasourcemv", "vallisneria.americana", "datemv")])
-ps[is.na(ps$vallisneria.americana) == T, "vallisneria.americana"] <- "0"
-ps[ps$not_sampled == "1", "vallisneria.americana"] <- NA
-
-# re factor and view
-ps$vallisneria.americana <- factor(ps$vallisneria.americana, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$vallisneria.americana)
-sort(unique(ps$vallisneria.americana))
-hist(as.numeric(as.character(ps$vallisneria.americana)))
-plot(depth.meter~vallisneria.americana, data = ps, ylim = c(0,20))
-ggplot(ps, aes(x= vallisneria.americana, y = depth.meter))+
-  geom_violin(aes(vallisneria.americana))
-
-##### 
-
-#' ## brasenia.schreberi
-#' 
-#####
-ps$brasenia.schreberi <- as.factor(ps$brasenia.schreberi)
-summary(ps$brasenia.schreberi)
-sort(unique(ps$brasenia.schreberi))
-hist(as.numeric(as.character(ps$brasenia.schreberi)))
-
-
-#' where not_sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not_sampled == "1" &
-            ps$brasenia.schreberi!= "", c( "datasourcemv", "brasenia.schreberi", "datemv")])
-ps[is.na(ps$brasenia.schreberi) == T, "brasenia.schreberi"] <- "0"
-ps[ps$not_sampled == "1", "brasenia.schreberi"] <- NA
-
-# re factor and view
-ps$brasenia.schreberi <- factor(ps$brasenia.schreberi, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$brasenia.schreberi)
-sort(unique(ps$brasenia.schreberi))
-hist(as.numeric(as.character(ps$brasenia.schreberi)))
-plot(depth.meter~brasenia.schreberi, data = ps, ylim = c(0,20))
-ggplot(ps, aes(x= brasenia.schreberi, y = depth.meter))+
-  geom_violin(aes(brasenia.schreberi))
-
-##### 
-
-#' ## potamogeton.richardsonii
-#' 
-#####
-ps$potamogeton.richardsonii <- as.factor(ps$potamogeton.richardsonii)
-summary(ps$potamogeton.richardsonii)
-sort(unique(ps$potamogeton.richardsonii))
-hist(as.numeric(as.character(ps$potamogeton.richardsonii)))
-ps[ps$potamogeton.richardsonii == "", "potamogeton.richardsonii"] <- "0"
-
-# v's are zeros (visual obs in sblood dataset)
-ps[ps$potamogeton.richardsonii == "v", "potamogeton.richardsonii"] <- "0"
-
-#' where not_sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not_sampled == "1" &
-            ps$potamogeton.richardsonii!= "", c( "datasourcemv", "potamogeton.richardsonii", "datemv")])
-ps[is.na(ps$potamogeton.richardsonii) == T, "potamogeton.richardsonii"] <- "0"
-ps[ps$not_sampled == "1", "potamogeton.richardsonii"] <- NA
-
-# re factor and view
-ps$potamogeton.richardsonii <- factor(ps$potamogeton.richardsonii, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$potamogeton.richardsonii)
-sort(unique(ps$potamogeton.richardsonii))
-hist(as.numeric(as.character(ps$potamogeton.richardsonii)))
-plot(depth.meter~potamogeton.richardsonii, data = ps, ylim = c(0,20))
-ggplot(ps, aes(x= potamogeton.richardsonii, y = depth.meter))+
-  geom_violin(aes(potamogeton.richardsonii))
-
-#####
-
-#' ## spirodela.polyrhiza
-#' 
-#####
-ps$spirodela.polyrhiza <- factor(ps$spirodela.polyrhiza)
-summary(ps$spirodela.polyrhiza)
-sort(unique(ps$spirodela.polyrhiza))
-hist(as.numeric(as.character(ps$spirodela.polyrhiza)))
-ps[ps$spirodela.polyrhiza == "", "spirodela.polyrhiza"] <- "0"
-
-# whats up with all of the weird values
-ps[ps$spirodela.polyrhiza == "0,1"|
-     ps$spirodela.polyrhiza == "0,2" |
-     ps$spirodela.polyrhiza == "11", c("lknamemv","datasourcemv","datemv","spirodela.polyrhiza")]
-# Newmans's are 1's and 2's and brasch's is 1.
-ps[ps$spirodela.polyrhiza == "0,1", "spirodela.polyrhiza"] <- "1"
-ps[ps$spirodela.polyrhiza == "0,2" , "spirodela.polyrhiza"] <- "2"
-ps[ps$spirodela.polyrhiza == "11", "spirodela.polyrhiza"] <- "1"
-ps[is.na(ps$spirodela.polyrhiza) == F & 
-     ps$spirodela.polyrhiza== "0,0", "spirodela.polyrhiza"] <- "0"
-
-
-#' where not_sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not_sampled == "1" &
-            ps$spirodela.polyrhiza!= "", c( "datasourcemv", "spirodela.polyrhiza", "datemv")])
-ps[is.na(ps$spirodela.polyrhiza) == T, "spirodela.polyrhiza"] <- "0"
-ps[ps$not_sampled == "1", "spirodela.polyrhiza"] <- NA
-
-# re factor and view
-ps$spirodela.polyrhiza <- factor(ps$spirodela.polyrhiza, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$spirodela.polyrhiza)
-ps[is.na(ps$spirodela.polyrhiza) == F & 
-     ps$spirodela.polyrhiza== "0,0", "spirodela.polyrhiza"] <- "0"
-ps$spirodela.polyrhiza <- factor(ps$spirodela.polyrhiza, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$spirodela.polyrhiza)
-sort(unique(ps$spirodela.polyrhiza))
-hist(as.numeric(as.character(ps$spirodela.polyrhiza)))
-plot(depth.meter~spirodela.polyrhiza, data = ps, ylim = c(0,20))
-ggplot(ps, aes(x= spirodela.polyrhiza, y = depth.meter))+
-  geom_violin(aes(spirodela.polyrhiza))
-
-#####  
-
-
-
-str(ps)[1:60]
-
-#' ## nymphaea.odorata
-#' 
-#####
-ps$nymphaea.odorata <- factor(ps$nymphaea.odorata)
-summary(ps$nymphaea.odorata)
-sort(unique(ps$nymphaea.odorata))
-hist(as.numeric(as.character(ps$nymphaea.odorata)))
-ps[ps$nymphaea.odorata == "" , "nymphaea.odorata"] <- "0"
-# round half integers up:
-ps[ps$nymphaea.odorata == "0.5", "nymphaea.odorata"] <- "1"
-ps[ps$nymphaea.odorata == "1.5", "nymphaea.odorata"] <- "2"
-ps[ps$nymphaea.odorata == "2.5", "nymphaea.odorata"] <- "3"
-ps[ps$nymphaea.odorata == "3.5", "nymphaea.odorata"] <- "4"
-ps[ps$nymphaea.odorata == "4.5", "nymphaea.odorata"] <- "5"
-
-# delete any non integer values
-
-ps[is.na(ps$nymphaea.odorata) == F & 
-     (ps$nymphaea.odorata == "" |
-        ps$nymphaea.odorata != "0"&
-        ps$nymphaea.odorata != "1"&
-        ps$nymphaea.odorata != "2"&
-        ps$nymphaea.odorata != "3"&
-        ps$nymphaea.odorata != "4"&
-        ps$nymphaea.odorata != "5"), "nymphaea.odorata"] <- "0"
-
-ps$nymphaea.odorata <- factor(ps$nymphaea.odorata)
-summary(ps$nymphaea.odorata)
-
-#' where not_sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not_sampled == "1" &
-            ps$nymphaea.odorata!= "", c( "datasourcemv", "nymphaea.odorata", "datemv")])
-ps[is.na(ps$nymphaea.odorata) == T, "nymphaea.odorata"] <- "0"
-ps[ps$not_sampled == "1", "nymphaea.odorata"] <- NA
-
-# re factor and view
-ps$nymphaea.odorata <- factor(ps$nymphaea.odorata, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$nymphaea.odorata)
-sort(unique(ps$nymphaea.odorata))
-hist(as.numeric(as.character(ps$nymphaea.odorata)))
-plot(depth.meter~nymphaea.odorata, data = ps, ylim = c(0,20))
-ggplot(ps, aes(x= nymphaea.odorata, y = depth.meter))+
-  geom_violin(aes(nymphaea.odorata))
-
-#####
-
-#' ## chara.spp
-#' 
-#####
-ps$chara.spp <- factor(ps$chara.spp)
-summary(ps$chara.spp)
-sort(unique(ps$chara.spp))
-hist(as.numeric(as.character(ps$chara.spp)))
-ps[ps$chara.spp == "" , "chara.spp"] <- "0"
-# round half integers up:
-ps[ps$chara.spp == "0.5", "chara.spp"] <- "1"
-ps[ps$chara.spp == "1.5", "chara.spp"] <- "2"
-ps[ps$chara.spp == "2.5", "chara.spp"] <- "3"
-ps[ps$chara.spp == "3.5", "chara.spp"] <- "4"
-ps[ps$chara.spp == "4.5", "chara.spp"] <- "5"
-
-# delete any non integer values
-ps[is.na(ps$chara.spp) == F & 
-     (ps$chara.spp == "" |
-        ps$chara.spp != "0"&
-        ps$chara.spp != "1"&
-        ps$chara.spp != "2"&
-        ps$chara.spp != "3"&
-        ps$chara.spp != "4"&
-        ps$chara.spp != "5"), "chara.spp"] <- "0"
-
-ps$chara.spp <- factor(ps$chara.spp)
-summary(ps$chara.spp)
-
-#' where not_sampled, assign value of NA. Notice that this is nixing some data...
-unique(ps[ps$not_sampled == "1" &
-            ps$chara.spp!= "", c( "datasourcemv", "chara.spp", "datemv")])
-ps[is.na(ps$chara.spp) == T, "chara.spp"] <- "0"
-ps[ps$not_sampled == "1", "chara.spp"] <- NA
-
-# re factor and view
-ps$chara.spp <- factor(ps$chara.spp, ordered = is.ordered(c(0,1,2,3,4,5)))
-summary(ps$chara.spp)
-sort(unique(ps$chara.spp))
-hist(as.numeric(as.character(ps$chara.spp)))
-plot(depth.meter~chara.spp, data = ps, ylim = c(0,20))
-ggplot(ps, aes(x= chara.spp, y = depth.meter))+
-  geom_violin(aes(chara.spp))
-
-##### 
-
-#' #Automate the rest:
-#' 
-#####
-str(ps)
-names (ps)
-ps.rem.names <- names(ps)[c(21:26,28:29,31:34,36:67,69:91,93:96,
-                            100:102,104:108,113:113,116:137,140:146,148:154,158:160 )]
-for (i in (ps.rem.names)) { 
-  
-  # i = "stuckenia.pectinata"
-  # i = "najas.spp"
-  ps[,i] <- as.character(ps[,i])
-  ps[is.na(ps[,i]) == F & ps[,i] == "" , i] <- "0"
-  # round half integers up:
-  ps[is.na(ps[,i]) == F & ps[,i] == "0.5", i] <- "1"
-  ps[is.na(ps[,i]) == F & ps[,i] == "1.5", i] <- "2"
-  ps[is.na(ps[,i]) == F & ps[,i] == "2.5", i] <- "3"
-  ps[is.na(ps[,i]) == F & ps[,i] == "3.5", i] <- "4"
-  ps[is.na(ps[,i]) == F & ps[,i] == "4.5", i] <- "5"
-  
-  # delete any non integer values
-  ps[is.na(ps[,i]) == F & 
-       (ps[,i] == "" |
-          ps[,i] != "0"&
-          ps[,i] != "1"&
-          ps[,i] != "2"&
-          ps[,i] != "3"&
-          ps[,i] != "4"&
-          ps[,i] != "5"), i] <- "0"
-  
-  # ps[,i] <- factor(ps[,i])
-  # summary(ps[,i])
-  # 
-  #' where not_sampled, assign value of NA. Notice that this is nixing some data...
-  unique(ps[ps$not_sampled == "1" &
-              ps[,i]!= "", c( "datasourcemv", i, "datemv")])
-  ps[is.na(ps[,i]) == T, i] <- "0"
-  ps[ps$not_sampled == "1", i] <- NA
-  
-  # re factor and view
-  ps[,i] <- factor(ps[,i], ordered = is.ordered(c(0,1,2,3,4,5)))
-  # summary(ps[,i])
-  # sort(unique(ps[,i]))
-  hist(as.numeric(as.character(ps[,i])))
-  plot(ps$depth.meter~ps[,i], ylim = c(0,20), main = i)
-  print(i)
-}
-
-par(mfrow = c(3,3))
-for (i in names(ps)) {
-  plot(ps$depth.meter~ps[,i], ylim = c(0,20), main = i)
-}
-
-
-
-#' Save progress as a .csv file in the clp_surveys folder  
-# write.csv(ps, file = "data/output_data/state_clp_comp_cleaned.csv", row.names = F)  
-
-
-
-
+   # progress checkpoint -----------------------------------------------------
+   
+   
+   #' Save progress 
+   
+   #write.csv(ps_2, file = "data/output/surveys_longform.csv", row.names = F)
+   #ps <- fread(input = "data/output/surveys_longform.csv")
+   
+
+# merge with DNR data -----------------------------------------------------
+
+#' Now we can merge these surveys into the MNDNR datasets.
+  dnrdat <- fread(input = "")
+
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
 # footer ------------------------------------------------------------------
-
-
-
-
 #' ## Document footer 
 #' 
 #' Document spun with: ezspin(file = "scripts/a_compiling_survey_data.R", out_dir = "html_outputs/compiling survey data", fig_dir = "figures", keep_md=FALSE)
