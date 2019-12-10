@@ -2494,7 +2494,7 @@ sort(names(ps))
 #' save progress as a .csv file in the output folder
 
 # write.csv(ps, file = "data/output/surveys_columns_united.csv")
-#ps <- fread(input = "data/output/surveys_columns_united.csv")
+# ps <- fread(input = "data/output/surveys_columns_united.csv")
 
 
 # clean out cells in each column ------------------------------------------
@@ -2584,12 +2584,12 @@ ps %>%
 
 ps$STA_NBR <- str_replace(ps$STA_NBR, "VP", "")
 
-unique(ps$STA_NBR)
-unique(ps$STA_NBR)[1000:length(unique(ps$STA_NBR))]
+# unique(ps$STA_NBR)
+# unique(ps$STA_NBR)[1000:length(unique(ps$STA_NBR))]
 
 #' retain only first values, drop extra words, etc.
-sort(unique(gsub( "TD", "", word(word(word(ps$STA_NBR,sep = ","), sep = "/"), sep = " "), )))
-sort(unique(gsub( "TD", "", word(word(word(ps$STA_NBR,sep = ","), sep = "/"), sep = " "), )))[1000:1691]
+# sort(unique(gsub( "TD", "", word(word(word(ps$STA_NBR,sep = ","), sep = "/"), sep = " "), )))
+# sort(unique(gsub( "TD", "", word(word(word(ps$STA_NBR,sep = ","), sep = "/"), sep = " "), )))[1000:1691]
 
 ps[ , STA_NBR := gsub( "TD", "", word(word(word(STA_NBR,sep = ","), sep = "/"), sep = " ")), ]
 
@@ -2992,7 +2992,7 @@ ps <- subset(ps, is.na(ps$DEPTH_FT) != T |
                ps$not_sampled == "1" )
 
 
-# other point level features ----------------------------------------------
+NULL# other point level features ----------------------------------------------
 
 #' Whats next?  
 names(ps)
@@ -3071,7 +3071,7 @@ ps[,sample_taken:= NULL]
    # sort(unique(ps[,i]))
    hist(as.numeric(ps[,`Myriophyllum spicatum`]))
    plot(ps$DEPTH_FT~ps[,`Myriophyllum spicatum`], main = "EWM")
-   print(i)
+  
 
 
 # progress checkpoint -----------------------------------------------------
@@ -3085,18 +3085,39 @@ ps[,sample_taken:= NULL]
 
 # melt data to be wide format ---------------------------------------------
 
-   #all of these data are considered to have been sampled
+   #drop locs that were not sampled
    names(ps)
-   ps[,sampled := 1]
-   ps[,sampled := as.integer(sampled)]
-   str(ps$sampled)
+   ps[ , summary(not_sampled) , ]
+   ps[not_sampled == 1 , .N , ]
+   ps <- ps[not_sampled != 1 , , ]
+   ps[, not_sampled := NULL, ]
    
+   # make sure all of the no_veg_found are correct
+   ps[ , no_veg_found := as.factor(no_veg_found) , ]
+   ps[ , summary(no_veg_found) ,]
+   
+   # count all of the species columns
+   names(ps)
+   ps[ , no_taxa_found := as.factor(rowSums(ps[ ,22:217])==0) , ]
+   ps[, summary(no_taxa_found) , ]
+   
+   # how does that compare to no_veg_found
+   ps[ no_taxa_found == FALSE , summary(no_veg_found) ,]
+   
+   #drop old no veg column
+   ps[, no_veg_found := NULL,]
+   
+   #change no taxa to 0,1
+   ps[, no_taxa_found := as.character(no_taxa_found)]
+   ps[ no_taxa_found == "TRUE", no_taxa_found := "1"]
+   ps[ no_taxa_found == "FALSE", no_taxa_found := "0"]
    
    # retain the point ID chars and the depth, then make data long (new row for every observation of a species)
-   ps_1 = melt(ps, id.vars = c(1:22),
+   names(ps)
+   ps_1 = melt(ps, id.vars = c(1:20),
                    variable.name = "taxon", value.name = "rake" )
    
-   #drop all of the zeros (not observed) in this plant data. because we tossed in a 
+   #drop all of the zeros (not observed) in this plant data. because we tossed in a no_veg_found this will keep the veg in rows where they exitst and drop the no_veg_found 
    ps_2 <- ps_1[rake > 0,] # retain only rows with pres > 0
    str(ps_2)
  
@@ -3107,45 +3128,133 @@ ps[,sample_taken:= NULL]
    
    #' Save progress 
    
-   #write.csv(ps_2, file = "data/output/surveys_longform.csv", row.names = F)
-   #ps <- fread(input = "data/output/surveys_longform.csv")
+   # write.csv(ps_2, file = "data/output/surveys_longform.csv", row.names = F)
+   # ps <- fread(input = "data/output/surveys_longform.csv", drop = 1)
    
 
 # merge with DNR data -----------------------------------------------------
 
 #' Now we can merge these surveys into the MNDNR datasets.
-  dnrdat <- fread(input = "")
+  dnrdat <- fread(input = "data/output/DNR_PI_Data_Combined.csv", drop = 1)
+
+   #check name alignment
+   cbind(names(dnrdat),names(ps))
+
+   
+   # fix up names for merge
+   setnames(ps, "SURVEY_ID", "SURVEY_ID_DATASOURCE")
+   setnames(ps, "taxon", "TAXON")
+   dnrdat[ , TAXACODE := NULL , ]
+   dnrdat[ , DENS := NA , ]
+   setnames(ps, "rake", "DENS")
+   ps[ , SAMPLE_NOTES := paste(SAMPLE_NOTES,SURVEY_NOTES,sep = ";")]
+   ps[ , SURVEY_NOTES := NULL , ]
+   
+
+   # merge data
+   
+   ps[] <- lapply(ps[], as.character)
+   
+   dnrdat[] <- lapply(dnrdat[], as.character)
+   
+   king <- merge(ps , dnrdat, by = c("DOWLKNUM", "LAKE_NAME", "DATASOURCE", "SURVEY_DATE", "STA_NBR", "DEPTH_FT", "SUBSTRATE","SURVEYOR", "SURVEY_ID_DATASOURCE", "TAXON", "SAMPLE_NOTES", "DENS"),  all = T )
+   
+   
+   # clean up product:
+   
+   str(king)
+   names(king)
+   setcolorder(king, c(1:9,11,10,12:18,21:22, 19:20, 23:27))
+   
+   # unneeded columns
+   king[ , summary(factor(SAMPLE_TYPE_DESCR)) , ]
+   king[ , SAMPLE_TYPE_DESCR := NULL ,]
+   
+   # NO veg found:
+   sort(unique(king$TAXON))
+   king[TAXON == "no_taxa_found", TAXON := "No Veg Found"]
+   
+   # if no veg found, assign dens as NA
+   king[TAXON == "No Veg Found", DENS := NA]
+   
+   
+# review and export dataset -----------------------------------------------
+
+   #any duplicated surveys?
+   king[, .N ,.(DOWLKNUM, SURVEY_DATE)]
+   unique(duplicated(king[, .N ,.(DOWLKNUM, SURVEY_DATE)])==T) # no duplicates
+   
+   # samples per taxon
+   king[ , .N , TAXON]
+   
+   #create new, unique survey ID for each survey
+   king[, SURVEY_ID := as.integer(SURVEY_ID),]
+   king[, SURVEY_ID := .GRP ,.(DOWLKNUM, SURVEY_DATE)]
+   
+   #and a unique ID for each sample point (groups the plant obs)
+   king[, POINT_ID := as.integer(POINT_ID),]
+   king[, POINT_ID := .GRP, by = c("STA_NBR", "SURVEY_ID")]
+   
+   #and finally a unique ID for each observation in the dataset
+   king[, OBS_ID := .I]
+   
+   king[ , .N , c("SURVEY_ID","DATASOURCE")] #n obseravtion in each survey (total lines = n surveys)
+   
+  # write.csv(king, file = "data/output/plant_surveys_all.csv")
+
+# clean up  taxonomy ------------------------------------------------------
+  
+   # pull in taxonomy corrections:
+   
+   tnrs <- fread( file = "data/output/tnrs.final.csv", drop = 1)
+
+   tnrs[match(king$TAXON, tnrs$submittedname), "species"]
+   
+   king[, TAXONC := tnrs[match(king$TAXON, tnrs$submittedname), "species"],  ]
+   
+   names(king)
+   setcolorder(king, c(1:11,27))
+   
+   #change TAXON to NO_VEG_FOUND
+   setnames(king, "TAXON", "NO_VEG_FOUND")
+   king[  , NO_VEG_FOUND := NO_VEG_FOUND == "No Veg Found" ,]
+   
+   # drop Taxa marked for deletion
+   king[ , sort(unique(TAXONC)) ,]
+   
+   # this is rare species, ferns, alga
+   king[ TAXONC == "DELETE" , TAXONC , ]
+   
+   king[ is.na(TAXONC) == F & 
+           TAXONC == "DELETE" , TAXONC , ]
+   
+   king <- king[ is.na(TAXONC) == T | 
+           TAXONC != "DELETE" , ,  ]
+   
+   setnames(king, "TAXONC", "TAXON")
+   
+   
+   # samples per taxon
+   king[ , .N , TAXON]
+   
+   #and finally a new unique ID for each observation in the dataset
+   king[, OBS_ID := .I]
+   
+
+# export final ------------------------------------------------------------
 
    
    
+#' And here we have it-- the king of all PI databases
+
+   king[ TAXON == "Potamogeton amplifolius" , .N  , .(SURVEY_DATE,DOWLKNUM)  ]
    
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
+   #write.csv(king, file = "data/output/plant_surveys_mn.csv")
    
    
    
 # footer ------------------------------------------------------------------
 #' ## Document footer 
-#' 
-#' Document spun with: ezspin(file = "scripts/a_compiling_survey_data.R", out_dir = "html_outputs/compiling survey data", fig_dir = "figures", keep_md=FALSE)
 #' 
 #' Session Information:
 #+ sessionInfo
