@@ -99,5 +99,8 @@
   length(unique(tnrs.final$submittedname))
   length(unique(tnrs.final$species))
   
-  write.csv(taxa, file = "data/output/tnrs.final.csv" )
+  write.csv(tnrs.final, file = "data/output/tnrs.final.csv" )
+  
+  
+  
   
