@@ -136,7 +136,7 @@
   
   fshdat_2[ , taxon := word(taxon, start = -1, sep = fixed("_")), ]
   
-  fish_codes <- fread(file = "data/contributor_data/macroniche_adds/dustin/fisheries_codes_MRV.csv")
+  fish_codes <- fread(file = "data/input/contributor_data/macroniche_adds/dustin/fisheries_codes_MRV.csv")
   
   #these fish data have a field for no species found
   a <- data.table(SCIENTIFIC_NAME = "No Veg Found", PLANT_SPECIES_ABBREV = "novegfound")
@@ -160,34 +160,99 @@
   
   lnrdat <- fread(file = "data/input/contributor_data/macroniche_adds/perleberg/LakePlant export 20190701 finalql.csv")
   
+#' ## Updated datset:
+  v2lnr <- fread(file = "data/input/contributor_data/2020_submission/Lake_Ecology_Perleberg/LakePlant export 20190806_notfinal_JK.csv")
+  
+  # compare the two datasets:
   names(lnrdat)
+  names(v2lnr)  
   
-  lnrdat[ , .N , .(LAKE_NAME, SURVEY_DATE, DOWLKNUM)]
+  old <- lnrdat[ , .N , .(LAKE_NAME, SURVEY_ID, DOWLKNUM)]
+  new <- v2lnr[ , .N , .(LAKE_NAME, SURVEY_ID, DOWLKNUM)]
+  new_v_old_lnr <- merge(old,new, c("LAKE_NAME", "SURVEY_ID", "DOWLKNUM"), all = T)
   
-  summary <- lnrdat[ , .N , .(LAKE_NAME, SURVEY_DATE, DOWLKNUM)]
+  # write.csv(new_v_old_lnr, file = "new_lnr_comparison.csv")
   
-  # write.csv(summary, file = "lnrsurveysummary.csv")  
   
-  lnrdat[ , .N , .(LAKE_NAME, SURVEY_DATE, DOWLKNUM)]
+  names(v2lnr)
+  
+  v2lnr[ , .N , .(LAKE_NAME, SURVEY_ID, SURVEY_DATE, DOWLKNUM)]
+  
+  summary <- v2lnr[ , .N , .(LAKE_NAME, SURVEY_ID, DOWLKNUM)]
+  
+  # write.csv(summary, file = "lnrv2surveysummary.csv")  
+  
+  v2lnr[ , .N , .(LAKE_NAME, SURVEY_ID, DOWLKNUM)]
 
-  int <- data.table(sp = rep("sp", 15), num = 1:15)
+  int <- data.table(sp = rep("sp", 16), num = 1:16)
   
   int[ , spnum := paste(sp,num, sep = "")]
   
-  lnrdat_1 <- separate(lnrdat, OBSERVED_TAXA, into = c(int$spnum) )
+  # lnrdat_1 <- separate(v2lnr, OBSERVED_TAXA, into = c(int$spnum) )
+  # names(lnrdat_1)
   
-  names(lnrdat_1)
+  # try to preserve relative rake abundance vals if any are there
+  summary(v2lnr$OBSERVED_TAXA_REL_ABUND)
   
-  lnrdat_1[ , OBSERVED_TAXA_REL_ABUND := NULL]# drop unneeded col
+  v2lnr[ , OBSERVED_TAXA_REL_ABUND := gsub("}", "", gsub("{", "", OBSERVED_TAXA_REL_ABUND, fixed = TRUE), fixed = TRUE), ]
+  v2lnr[ , OBSERVED_TAXA_REL_ABUND := gsub('"', "", OBSERVED_TAXA_REL_ABUND, fixed = TRUE), ]
   
+  lnrdat_1 <- separate(v2lnr, OBSERVED_TAXA_REL_ABUND , into = c(int$spnum), sep = "," )
   
   lnrdat_1[sp1 == "" , summary(as.factor(VEG_REL_ABUNDANCE_DESCR)) , ]# deal with locs where no veg was found.
   
-  lnrdat_2 <-  melt(lnrdat_1, id.vars = c(1:16, 32:34))
+  names(lnrdat_1)
+  lnrdat_2 <-  melt(lnrdat_1, id.vars = c(1:20))
   
-#' We'll want to simplify these and drop unsampled sites from the data, also
-#' reevaluate what to do with the "sampled subjective sites",  "shoreline 
-#' surveys." For now, I have dropped all of these
+  # move the abundance data out to a new column (anything after the colon)
+  unique(lnrdat_2$value) # There are no abundance data.
+  lnrdat_2 <- separate(lnrdat_2, value , into = c("TAXON","REL_ABUND" ), sep = ":" )
+  
+#' Now we have some cleaning to do. What we have is a generic species column 
+#' (variable) that has important info because it is a placeholder for all points
+#' and where no species were observed at a point, the TAXON column shows " ".
+#' For all other points, the TAXON column shows the species code, and the 
+#' REL_ABUND column shows the relative abundance for that species (if recorded).
+#' 
+#' So, we've got three things to do: 1) Mark TAXON as NA where currently "" and
+#' variable == Sp1. 2) Delete the "variable" column. 3) Convert word abundances
+#' to the 1-3 (per Josh Knopik's description of the assignmnet scheme). 
+#'1)
+
+    # mark TAXON blanks as NA for no veg detected
+  lnrdat_2[TAXON== "", TAXON := NA]
+  
+  #point level non-detection:
+  lnrdat_2[, summary(as.factor(VEG_REL_ABUNDANCE_DESCR))]
+  #whats in those loc's
+  lnrdat_2[VEG_REL_ABUNDANCE_DESCR == "vegetation not detected" , summary(as.factor(TAXON)) ,]
+  lnrdat_2[VEG_REL_ABUNDANCE_DESCR == "vegetation not detected" , TAXON := NA ,]
+
+#'2) 
+  
+  # drop the "variable" col  
+  lnrdat_2[, variable := NULL, ]
+
+#'3)
+  
+  #convert chr abundances to numeric 1-3
+  lnrdat_2[ , summary(as.factor(REL_ABUND)) , ]
+  lnrdat_2[ REL_ABUND == "sparse", REL_ABUND := "1" , ]
+  lnrdat_2[ REL_ABUND == "common", REL_ABUND := "2" , ]
+  lnrdat_2[ REL_ABUND == "abundant", REL_ABUND := "3" , ]
+  # whats the other stuff in there?
+  lnrdat_2[ REL_ABUND == "few individuals" | REL_ABUND == "many individuals" | REL_ABUND == "single" |    REL_ABUND == "surface matted" , .(TAXON, OBSERVED_TAXA, REL_ABUND) ]
+  
+  #drop zebra mussel observations
+  lnrdat_2 <- lnrdat_2[!TAXON == "ZM" , ]
+  lnrdat_2[ REL_ABUND == "few individuals" | REL_ABUND == "many individuals" | REL_ABUND == "single" |    REL_ABUND == "surface matted" , .(TAXON, OBSERVED_TAXA, REL_ABUND) ]
+  lnrdat_2[ REL_ABUND == "few individuals" | REL_ABUND == "many individuals" | REL_ABUND == "single" |    REL_ABUND == "surface matted" , .(TAXON, OBSERVED_TAXA, REL_ABUND) ]
+  
+  
+  
+#' We'll want to simplify these and drop unsampled sites from the data: 
+#' unsampled sites should not be used in calculating lake stats, and we haven't
+#' got species data for those sites.  
   lnrdat_2[ , SAMPLE_TYPE_DESCR := as.factor(SAMPLE_TYPE_DESCR), ]
   lnrdat_2[, summary(SAMPLE_TYPE_DESCR) , ]
   
@@ -200,22 +265,25 @@
   lnrdat_3[ , summary(VEG_REL_ABUNDANCE_DESCR),]
 
 #' We need to delete all of the na's that come from expanding our data, but we
-#' don't want to lose a line of data for points where no veg was found. Luckily 
-#' we have a "" (blank) for spoecies one from our melt function. So, every row 
-#' with value ==NA can get hucked out.     
+#' don't want to lose a line of data for points where no veg was found. 
+#' 
+#' Luckily 
+#' we have a "" (blank) for species one from our melt function. So, every row 
+#' with value == NA can get hucked out.     
   
   lnrdat_3[VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected', ,]#locs not labeled as veg not det
+  lnrdat_3[value == "" & VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected']
+  lnrdat_3[is.na(value) == T & VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected' & variable == 'sp1']
   
   lnrdat_4 <- lnrdat_3[is.na(value) == F]
   
   
   # lookup scientific names
   lnrdat_4[ , variable := NULL , ]
-  lnrdat_4[ , TAXA_NUMBER := NULL , ]
   
   lnrdat_4[ , sort(unique(value)), ]
   
-  lnrtaxa <- fread(file = "data/contributor_data/macroniche_adds/perleberg/taxalist.csv")
+  lnrtaxa <- fread(file = "data/input/contributor_data/macroniche_adds/perleberg/taxalist.csv")
   #mndnr exported all rare species as "X" so we'll need to add this to the taxalist
   lnrtaxa <- rbind(lnrtaxa,data.table(SCIENTIFIC_NAME = "Rare Species", TAXA_CODE = "X"))
 
