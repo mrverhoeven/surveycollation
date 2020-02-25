@@ -205,7 +205,7 @@
   lnrdat_2 <-  melt(lnrdat_1, id.vars = c(1:20))
   
   # move the abundance data out to a new column (anything after the colon)
-  unique(lnrdat_2$value) # There are no abundance data.
+  unique(lnrdat_2$value) # There are some abundance data.
   lnrdat_2 <- separate(lnrdat_2, value , into = c("TAXON","REL_ABUND" ), sep = ":" )
   
 #' Now we have some cleaning to do. What we have is a generic species column 
@@ -220,6 +220,7 @@
 #'1)
 
     # mark TAXON blanks as NA for no veg detected
+  lnrdat_2[TAXON== "", .N, OBSERVED_TAXA] #these are indeed null species find locations
   lnrdat_2[TAXON== "", TAXON := NA]
   
   #point level non-detection:
@@ -246,9 +247,12 @@
   #drop zebra mussel observations
   lnrdat_2 <- lnrdat_2[!TAXON == "ZM" , ]
   lnrdat_2[ REL_ABUND == "few individuals" | REL_ABUND == "many individuals" | REL_ABUND == "single" |    REL_ABUND == "surface matted" , .(TAXON, OBSERVED_TAXA, REL_ABUND) ]
-  lnrdat_2[ REL_ABUND == "few individuals" | REL_ABUND == "many individuals" | REL_ABUND == "single" |    REL_ABUND == "surface matted" , .(TAXON, OBSERVED_TAXA, REL_ABUND) ]
+  lnrdat_2[ is.na(REL_ABUND) , .(TAXON, OBSERVED_TAXA, REL_ABUND) ]
   
-  
+  #inconsistent noting of these metrics means we'll delete them
+  #mark all blanks as NAs (if a survyeor did not mark abundance, they weren't estimating those)
+  lnrdat_2[ !REL_ABUND %in% c("1","2", "3") , REL_ABUND := NA]
+  lnrdat_2[ , summary(as.factor(REL_ABUND)) , ]
   
 #' We'll want to simplify these and drop unsampled sites from the data: 
 #' unsampled sites should not be used in calculating lake stats, and we haven't
@@ -256,14 +260,27 @@
   lnrdat_2[ , SAMPLE_TYPE_DESCR := as.factor(SAMPLE_TYPE_DESCR), ]
   lnrdat_2[, summary(SAMPLE_TYPE_DESCR) , ]
   
+  ###########################################################################
+  ###########################################################################
+  #' Here is where I am. Theres an issue in this area of code, wherin I lose all
+  #' of the veg not detected sites somewhere here. 
+  
   lnrdat_3 <- lnrdat_2[SAMPLE_TYPE_DESCR == "sampled" , , ] 
+  lnrdat_3[ ,.N , VEG_REL_ABUNDANCE_DESCR]
+  
   
   lnrdat_3[ , SAMPLE_NOTES := as.factor(SAMPLE_NOTES), ] 
   lnrdat_3[ SAMPLE_NOTES != "", .(SAMPLE_NOTES), ] 
   
   lnrdat_3[ , VEG_REL_ABUNDANCE_DESCR := as.factor(VEG_REL_ABUNDANCE_DESCR),  ]
   lnrdat_3[ , summary(VEG_REL_ABUNDANCE_DESCR),]
-
+  lnrdat_3[ , .N, VEG_REL_ABUNDANCE_DESCR]
+  lnrdat_3[ VEG_REL_ABUNDANCE_DESCR == "sparse", VEG_REL_ABUNDANCE_DESCR := "1" , ]
+  lnrdat_3[ VEG_REL_ABUNDANCE_DESCR == "common/frequent/occasional", VEG_REL_ABUNDANCE_DESCR := "2" , ]
+  lnrdat_3[ VEG_REL_ABUNDANCE_DESCR == "abundant/matted", VEG_REL_ABUNDANCE_DESCR := "3" , ]
+  lnrdat_3[ !VEG_REL_ABUNDANCE_DESCR %in% c("1","2", "3") , VEG_REL_ABUNDANCE_DESCR := NA]
+  lnrdat_3[ , .N, VEG_REL_ABUNDANCE_DESCR]
+  
 #' We need to delete all of the na's that come from expanding our data, but we
 #' don't want to lose a line of data for points where no veg was found. 
 #' 
