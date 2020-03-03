@@ -251,7 +251,7 @@
   lnrdat_2[ REL_ABUND == "few individuals" | REL_ABUND == "many individuals" | REL_ABUND == "single" |    REL_ABUND == "surface matted" , .(TAXON, OBSERVED_TAXA, REL_ABUND) ]
   
   #drop zebra mussel observations
-  lnrdat_2[ TAXON == "ZM" , TAXON := "" ]
+  lnrdat_2[ TAXON == "ZM" , TAXON := NA ]
   lnrdat_2[ REL_ABUND == "few individuals" | REL_ABUND == "many individuals" | REL_ABUND == "single" |    REL_ABUND == "surface matted" , .(TAXON, OBSERVED_TAXA, REL_ABUND) ]
   lnrdat_2[ is.na(REL_ABUND) , .(TAXON, OBSERVED_TAXA, REL_ABUND) ]
   
@@ -290,30 +290,31 @@
 #' with value == NA can get hucked out.     
   
   lnrdat_3[VEG_REL_ABUNDANCE_DESCR == 'vegetation not detected', .N , TAXON]#locs labeled as veg not det
-  lnrdat_3[VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected' & is.na(TAXON)== T, .N , ]#locs not labeled as veg not det and having 
+  lnrdat_3[VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected' & is.na(TAXON)== T, .N , ]#locs not labeled as veg not det and having no TAXON listed
   lnrdat_3[TAXON == "" & VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected']
-  lnrdat_3[is.na(TAXON) == T & VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected' ]
+  lnrdat_3[is.na(TAXON) == T & VEG_REL_ABUNDANCE_DESCR == 'vegetation not detected' ]
   
-  lnrdat_4 <- lnrdat_3[is.na(value) == F]
-  
+  lnrdat_4 <- lnrdat_3[is.na(TAXON) == F]
   
   # lookup scientific names
-  lnrdat_4[ , variable := NULL , ]
-  
-  lnrdat_4[ , sort(unique(value)), ]
+  lnrdat_4[ , sort(unique(TAXON)), ]
   
   lnrtaxa <- fread(file = "data/input/contributor_data/macroniche_adds/perleberg/taxalist.csv")
   #mndnr exported all rare species as "X" so we'll need to add this to the taxalist
-  lnrtaxa <- rbind(lnrtaxa,data.table(SCIENTIFIC_NAME = "Rare Species", TAXA_CODE = "X"))
+  # lnrtaxa <- rbind(lnrtaxa,data.table(SCIENTIFIC_NAME = "Rare Species", TAXA_CODE = "X"))
 
   # # check matches
-  # match(lnrdat_4$value, lnrtaxa$TAXA_CODE)
+  match(unique(lnrdat_4$TAXON), lnrtaxa$TAXA_CODE)
+  unique(lnrdat_4$TAXON)[is.na(match(unique(lnrdat_4$TAXON), lnrtaxa$TAXA_CODE))] # need to change NITO to NITEOBTU to match the lnrtaxa scheme
+  lnrdat_4[TAXON == "NITO", TAXON := "NITEOBTU" ]
+  
+  lnrtaxa$SCIENTIFIC_NAME[match(lnrdat_4$TAXON, lnrtaxa$TAXA_CODE)]
 
-  lnrdat_4[ , taxon := lnrtaxa$SCIENTIFIC_NAME[match(lnrdat_4$value, lnrtaxa$TAXA_CODE)] , ]
+  lnrdat_4[ , taxon := lnrtaxa$SCIENTIFIC_NAME[match(lnrdat_4$TAXON, lnrtaxa$TAXA_CODE)] , ]
   
   lnrdat_4[ , sort(unique(taxon)), ]
   
-  lnrdat_4[ VEG_REL_ABUNDANCE_DESCR == "vegetation not detected" , summary(as.factor(value)), ]
+  lnrdat_4[ VEG_REL_ABUNDANCE_DESCR == "vegetation not detected" , summary(as.factor(taxon)), ]
   
   #remove datafiles from substeps
   rm(lnrdat_1, lnrdat_2, lnrdat_3, lnrdat, lnrtaxa, int, summary)
@@ -330,11 +331,16 @@
   names(fshdat_2)
   #drop unused columns
   fshdat_2[ , c("OBJECTID","SORT_NAME", "SC_ID", "SS_ID", "FW_ID", "DNR_OFFICE", "STA_CODE", "STA_ID0", "TARGET_LOC", "ACTUAL_LOC", "UTM_SOURCE", "DATA_SOURCE", "SURVEY_STATUS", "PROJECT", "SAMPLETYPE", "LOC_TYPE", "pres","SLICE_lake","UTM_DATUM", "UTM_ZONE", "YEAR") := NULL , ]
-  
+
   summary(lnrdat_4)
   names(lnrdat_4)
   #drop unused columns
-  lnrdat_4[ , c("Project::STATUS","GPScoords::POINT_SPACING_M", "GPScoords::SURVEY_ID") := NULL , ]
+  lnrdat_4[ , c("Project::STATUS", "GPScoords::POINT_SPACING_M", "GPScoords::SURVEY_ID", "DEPTH_STRATA_ACTUAL", "SAMPLE_TYPE_DESCR") := NULL , ]
+  lnrdat_4[, SURVEYORS := paste(SURVEYOR_A,SURVEYOR_B,SURVEYOR_C, sep ="," )]
+  lnrdat_4[ , unique(SURVEYORS),]
+  lnrdat_4[ , c("SURVEYOR_A", "SURVEYOR_B", "SURVEYOR_C", "OBSERVED_TAXA") := NULL ,]
+  
+  
   
   summary(sldat)
   names(sldat)
@@ -345,11 +351,13 @@
 # clean column names -------------------------------------------------------
 
 #' ### Clean column names
-  cbind(names(fshdat_2),names(lnrdat_4), names(sldat))
+  cbind(names(sldat), names(fshdat_2),names(lnrdat_4) )
 
   setcolorder(sldat,  c(  1,2,3,4,5,7,9, 11, 6,10,8))
   setcolorder(fshdat_2,c(1,2,6,7,3,9,10,13,11,12, 4, 5,8))
-  setcolorder(lnrdat_4, c(2,3,1,5,4,7,8, 17, 9, 16,14,15,10,11,12,13))
+  setcolorder(lnrdat_4, c(1,2,8,7,5,
+                          3,6,14,9,12,
+                          10,11,15,13,4))
   
   cbind(names(fshdat_2),names(lnrdat_4), names(sldat))  
   
@@ -372,16 +380,13 @@
   names(lnrdat_4)[8] <- "TAXON"
   
   names(lnrdat_4)[13] <- "SURVEYOR"
-  lnrdat_4[, SURVEYOR:= paste(SURVEYOR,SURVEYOR_B,SURVEYOR_C, sep = ";") , ]
-  lnrdat_4[ , c("SURVEYOR_B","SURVEYOR_C") := NULL,]
 
   cbind(names(fshdat_2),names(lnrdat_4), names(sldat))  
   
   names(lnrdat_4)[11] <- "UTMX"
   names(lnrdat_4)[12] <- "UTMY"
-  
+
   cbind(names(fshdat_2),names(lnrdat_4), names(sldat))  
-  
   
   str(sldat)
   str(lnrdat_4)
@@ -431,7 +436,6 @@
     dnrdat[  , sort(summary(TAXON)) , ]
     
     dnrdat[ , summary(as.factor(VEG_REL_ABUNDANCE_DESCR)),] #from lnr
-    dnrdat[ , summary(as.factor(SAMPLE_TYPE_DESCR)),] #from lnr retain in case we want to drop the "shoreline plots" (n = 692)
     dnrdat[ , summary(as.factor(HAS_DATA)),] #from fsh ( X, Y == sampled found veg; Z = sampled, no veg found)
     dnrdat[ , summary(as.factor(sample_point_surveyed)),] #from sl
     
@@ -439,6 +443,9 @@
     dnrdat <- subset(dnrdat, is.na(sample_point_surveyed) == T |
                        sample_point_surveyed == "yes" , )
     dnrdat[ , sample_point_surveyed := NULL, ]
+    
+    dnrdat[HAS_DATA == "X" , .N ,TAXON] #from fsh ( X, Y == sampled found veg; Z = sampled, no veg found)
+    
     
 #' These are observations of plants that are conflicting with other fields. We 
 #' will assign all of these points a TAXON of no veg found.
@@ -454,13 +461,13 @@
               HAS_DATA == "Z" |
               VEG_REL_ABUNDANCE_DESCR == "vegetation not detected",
             TAXON := "No Veg Found",]
+    
     #drop HAS_DATA and VEG_REL_ABUNDANCE_DESCR
     dnrdat[ , c("HAS_DATA","VEG_REL_ABUNDANCE_DESCR") := NULL, ]
     
     dnrdat[ TAXON == "No Veg Found",summary(TAXON) ,]
     dnrdat[ ,summary(TAXON) ,]
     dnrdat[ is.na(TAXON), ,]
-    dnrdat[SURVEY_ID == "18009000_2009_1" & STA_NBR == 205, TAXON := "Calamagrostis" , ] # CALAMA code checked from LnR submitted taxalist
     
 # resolve date data -------------------------------------------------------
   
