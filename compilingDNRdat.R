@@ -210,7 +210,7 @@
   
 #' Now we have some cleaning to do. What we have is a generic species column 
 #' (variable) that has important info because it is a placeholder for all points
-#' and where no species were observed at a point, the TAXON column shows " ".
+#' and where no species were observed at a point, the TAXON column shows "".
 #' For all other points, the TAXON column shows the species code, and the 
 #' REL_ABUND column shows the relative abundance for that species (if recorded).
 #' 
@@ -218,16 +218,22 @@
 #' variable == Sp1. 2) Delete the "variable" column. 3) Convert word abundances
 #' to the 1-3 (per Josh Knopik's description of the assignmnet scheme). 
 #'1)
-
-    # mark TAXON blanks as NA for no veg detected
-  lnrdat_2[TAXON== "", .N, OBSERVED_TAXA] #these are indeed null species find locations
-  lnrdat_2[TAXON== "", TAXON := NA]
+  
+  
+  # mark TAXON blanks as NA for no veg detected
+  lnrdat_2[ , .N, TAXON]
+  lnrdat_2[ TAXON == "#N/A" , TAXON := ""]
+  lnrdat_2[TAXON== "", .N, OBSERVED_TAXA]
+  lnrdat_2[TAXON== "",  OBSERVED_TAXA := ""]
+  lnrdat_2[TAXON== "", .N, VEG_REL_ABUNDANCE_DESCR]
+  #these are indeed null species find locations
   
   #point level non-detection:
   lnrdat_2[, summary(as.factor(VEG_REL_ABUNDANCE_DESCR))]
   #whats in those loc's
   lnrdat_2[VEG_REL_ABUNDANCE_DESCR == "vegetation not detected" , summary(as.factor(TAXON)) ,]
-  lnrdat_2[VEG_REL_ABUNDANCE_DESCR == "vegetation not detected" , TAXON := NA ,]
+  lnrdat_2[VEG_REL_ABUNDANCE_DESCR == "vegetation not detected" , TAXON := "" ,]
+  
 
 #'2) 
   
@@ -245,7 +251,7 @@
   lnrdat_2[ REL_ABUND == "few individuals" | REL_ABUND == "many individuals" | REL_ABUND == "single" |    REL_ABUND == "surface matted" , .(TAXON, OBSERVED_TAXA, REL_ABUND) ]
   
   #drop zebra mussel observations
-  lnrdat_2 <- lnrdat_2[!TAXON == "ZM" , ]
+  lnrdat_2[ TAXON == "ZM" , TAXON := "" ]
   lnrdat_2[ REL_ABUND == "few individuals" | REL_ABUND == "many individuals" | REL_ABUND == "single" |    REL_ABUND == "surface matted" , .(TAXON, OBSERVED_TAXA, REL_ABUND) ]
   lnrdat_2[ is.na(REL_ABUND) , .(TAXON, OBSERVED_TAXA, REL_ABUND) ]
   
@@ -259,17 +265,13 @@
 #' got species data for those sites.  
   lnrdat_2[ , SAMPLE_TYPE_DESCR := as.factor(SAMPLE_TYPE_DESCR), ]
   lnrdat_2[, summary(SAMPLE_TYPE_DESCR) , ]
-  
-  ###########################################################################
-  ###########################################################################
-  #' Here is where I am. Theres an issue in this area of code, wherin I lose all
-  #' of the veg not detected sites somewhere here. 
-  
+  lnrdat_2[, summary(as.factor(VEG_REL_ABUNDANCE_DESCR)) , ]
+  lnrdat_2[ SAMPLE_TYPE_DESCR != "sampled", summary(as.factor(VEG_REL_ABUNDANCE_DESCR)) ]
+
   lnrdat_3 <- lnrdat_2[SAMPLE_TYPE_DESCR == "sampled" , , ] 
   lnrdat_3[ ,.N , VEG_REL_ABUNDANCE_DESCR]
   
-  
-  lnrdat_3[ , SAMPLE_NOTES := as.factor(SAMPLE_NOTES), ] 
+    lnrdat_3[ , SAMPLE_NOTES := as.factor(SAMPLE_NOTES), ] 
   lnrdat_3[ SAMPLE_NOTES != "", .(SAMPLE_NOTES), ] 
   
   lnrdat_3[ , VEG_REL_ABUNDANCE_DESCR := as.factor(VEG_REL_ABUNDANCE_DESCR),  ]
@@ -278,7 +280,6 @@
   lnrdat_3[ VEG_REL_ABUNDANCE_DESCR == "sparse", VEG_REL_ABUNDANCE_DESCR := "1" , ]
   lnrdat_3[ VEG_REL_ABUNDANCE_DESCR == "common/frequent/occasional", VEG_REL_ABUNDANCE_DESCR := "2" , ]
   lnrdat_3[ VEG_REL_ABUNDANCE_DESCR == "abundant/matted", VEG_REL_ABUNDANCE_DESCR := "3" , ]
-  lnrdat_3[ !VEG_REL_ABUNDANCE_DESCR %in% c("1","2", "3") , VEG_REL_ABUNDANCE_DESCR := NA]
   lnrdat_3[ , .N, VEG_REL_ABUNDANCE_DESCR]
   
 #' We need to delete all of the na's that come from expanding our data, but we
@@ -288,9 +289,10 @@
 #' we have a "" (blank) for species one from our melt function. So, every row 
 #' with value == NA can get hucked out.     
   
-  lnrdat_3[VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected', ,]#locs not labeled as veg not det
-  lnrdat_3[value == "" & VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected']
-  lnrdat_3[is.na(value) == T & VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected' & variable == 'sp1']
+  lnrdat_3[VEG_REL_ABUNDANCE_DESCR == 'vegetation not detected', .N , TAXON]#locs labeled as veg not det
+  lnrdat_3[VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected' & is.na(TAXON)== T, .N , ]#locs not labeled as veg not det and having 
+  lnrdat_3[TAXON == "" & VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected']
+  lnrdat_3[is.na(TAXON) == T & VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected' ]
   
   lnrdat_4 <- lnrdat_3[is.na(value) == F]
   
