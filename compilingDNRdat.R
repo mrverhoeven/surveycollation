@@ -11,6 +11,9 @@
 #'---
 
 
+# header ------------------------------------------------------------------
+
+
   strttime <- Sys.time()
   getwd()
 #' # Preamble
@@ -25,7 +28,7 @@
 
 
 
-# load in existing databases ----------------------------------------------
+
 #' # Load in DNR databases
 #' MN DNR has 3 primary db's with these data in them. First is shallow lakes. 
 #' We can get most of that from a 2018 Muthukrishnan Et al. data archive. There
@@ -448,7 +451,12 @@
     
     dnrdat[ TAXON == "No Veg Found",summary(TAXON) ,]
     dnrdat[ ,summary(TAXON) ,]
-    dnrdat[ is.na(TAXON), ,]
+    dnrdat[ is.na(TAXON), ,] 
+    
+    # Filamentous Algae! (Add names)
+    dnrdat[TAXACODE == "FA" ,  ,]
+    dnrdat[TAXACODE == "FA" , TAXON := "Filamentous Algae spp." ,]
+    
     
 # resolve date data -------------------------------------------------------
   
@@ -487,8 +495,9 @@
     dnrdat[ , summary(DEPTH_FT), ]
     dnrdat[ DEPTH_FT > 99 , , ]
     dnrdat[ is.na(DEPTH_FT), , ]
+
 #' SOme of these points are good, some appear to be incorrect data entries.
-#' We'll leave them be for no, with the assumption that we will only use
+#' We'll leave them be for now, with the assumption that we will only use
 #' complete entries in our analysis. 
 
 
@@ -559,13 +568,14 @@
     dnrdat [ , TAXON := droplevels(TAXON),]
     dnrdat[ , sort(unique(as.character(TAXON))),]
     
+    
 # review dataset and export -----------------------------------------------
 
 #' ## Review and Export dataset    
     
     str(dnrdat)
     dnrdat [ , SUBSTRATE := droplevels(SUBSTRATE),]
-    dnrdat [ , SAMPLE_TYPE_DESCR := droplevels(SAMPLE_TYPE_DESCR),]
+    dnrdat [ , SAMPLE_NOTES := droplevels(SAMPLE_NOTES),]
     
     dnrdat[ , .N , TAXON] #n occurrences by spp
     dnrdat[ , .N , c("SURVEY_ID","DATASOURCE")] #n obseravtion in each survey (total lines = n surveys)
