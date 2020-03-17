@@ -11,22 +11,25 @@
 #'---
 
 
+# header ------------------------------------------------------------------
+
+
   strttime <- Sys.time()
   getwd()
 #' # Preamble
 #' Load libraries
 #+warning=FALSE, message=FALSE 
-  library(knitr)
-  library(ezknitr)
-  library(bit64)
+  # library(knitr)
+  # library(ezknitr)
+  # library(bit64)
   library(data.table)
   library(tidyr)
   library(stringr)
 
 
 
-# load in existing databases ----------------------------------------------
-#' ## Load in DNR databases
+
+#' # Load in DNR databases
 #' MN DNR has 3 primary db's with these data in them. First is shallow lakes. 
 #' We can get most of that from a 2018 Muthukrishnan Et al. data archive. There
 #' are also data collected by Fisheries--these were shared by Donna Perleberg. 
@@ -37,14 +40,14 @@
 
 # shallow lakes -----------------------------------------------------------
 
-#' ### Shallow Lakes Program
+#' ## Shallow Lakes Program
   # shallow lakes data
   
   sldat <- fread(file = "data/input/contributor_data/macroniche_adds/muthukrishnan/Lake_plant_diversity_data.csv") # use data.table to pull in dataset
   
   names(sldat) #view the names within the sldats datatable
 
-#' So we can see that the shallow lakes data are in a long form, with each
+#' We can see that the shallow lakes data are in a long form, with each
 #' record representing a plant occurrence, and sites with no plant occurrences
 #' having a single record with a *no vegetation present* for the species name.
 #' Occurrences with unsurveyed points are marked *no* in the
@@ -59,25 +62,9 @@
   sldat[ veg_code == "ZIP", .N , ]
 
   
-#'can we cruise these for bad DOWIDs?
-  # badIDs <- fread(file = "data/input/Bad DOWIDs.csv", fill = T)
-  # 
-  # idents <- sldat [ , .(unique(lake_name)),]
-  # 
-  # match(badIDs$lake_name,idents$V1) #so we can see that every line has a good match
-  # rm(badIDs)
-  # rm(idents)
-
-#' All of these bad idents came from the shallow lakes dataset, but there are no
-#' spatial data in the shallow lakes data... So there's really no way to resolve
-#' by pulling those data. We'll have to try to link up to the NWI dataset to
-#' get locs on these lakes.  
-#' 
-#' 
-
 # fisheries div -----------------------------------------------------------
 
-#' ### Fisheries Program
+#' ## Fisheries Program
 #' Now we want to pull in the next dataset. These are PIs from the Fisheries
 #' division. 
   
@@ -92,10 +79,12 @@
   fshdat[ ,c(265, 340:347):= NULL , ]
   
   #find an indicator col for sample taken
-  fshdat[, summary(as.factor(HAS_DATA)), ] #according to the metadata record, this will not help us X, Y, Z all 
+  fshdat[, summary(as.factor(HAS_DATA)), ] #according to the metadata record, X, Y, Z all were sampled 
   fshdat[ , summary(DEPTH_FT), ]
   fshdat[ , 32:338 , ][ ,sum() , ]
   fshdat[ , vegfound := rowSums(.SD), .SDcols = 32:338]
+  fshdat[, summary(vegfound)]
+  fshdat[vegfound < 1 ,summary(as.factor(HAS_DATA)),]
   # fshdat[, vegfound, ]
   fshdat[ vegfound == 0 , novegfound := 1, ]
   fshdat[is.na(novegfound) == T , novegfound := 0, ]
@@ -104,12 +93,6 @@
   # retain the point ID chars and the depth, then make data long (new row for every observation of a species)
   fshdat_1 = melt(fshdat, id.vars = c(1:31),
                variable.name = "taxon", value.name = "pres" )
-  
-  # #rows with Zizania palu:
-  # fshdat_1[ taxon == "E_ZIP" & pres == "1", .N, ]
-  # fshdat_1[ taxon == "E_ZIP" & pres == "1",, ]
-  # fshdat_1[ taxon == "E_ZIP" & pres == "1",.N,.(LAKE_NAME, DOWLKNUM, SURVEYDATE) ]
-  # fshdat_1[ taxon == "E_ZIP" & pres == "1",.N,.(LAKE_NAME, DOWLKNUM) ]  
   
 #' Alright. Now we have the Fisheries data in a long form. We now want to 
 #' remove the species with a null occurrence, and somehow retain a line for even
@@ -136,7 +119,7 @@
   
   fshdat_2[ , taxon := word(taxon, start = -1, sep = fixed("_")), ]
   
-  fish_codes <- fread(file = "data/contributor_data/macroniche_adds/dustin/fisheries_codes_MRV.csv")
+  fish_codes <- fread(file = "data/input/contributor_data/macroniche_adds/dustin/fisheries_codes_MRV.csv")
   
   #these fish data have a field for no species found
   a <- data.table(SCIENTIFIC_NAME = "No Veg Found", PLANT_SPECIES_ABBREV = "novegfound")
@@ -160,73 +143,166 @@
   
   lnrdat <- fread(file = "data/input/contributor_data/macroniche_adds/perleberg/LakePlant export 20190701 finalql.csv")
   
+#' ## Updated datset:
+  v2lnr <- fread(file = "data/input/contributor_data/2020_submission/Lake_Ecology_Perleberg/LakePlant export 20190806_notfinal_JK.csv")
+  
+  # compare the two datasets:
   names(lnrdat)
+  names(v2lnr)  
   
-  lnrdat[ , .N , .(LAKE_NAME, SURVEY_DATE, DOWLKNUM)]
+  old <- lnrdat[ , .N , .(LAKE_NAME, SURVEY_ID, DOWLKNUM)]
+  new <- v2lnr[ , .N , .(LAKE_NAME, SURVEY_ID, DOWLKNUM)]
+  new_v_old_lnr <- merge(old,new, c("LAKE_NAME", "SURVEY_ID", "DOWLKNUM"), all = T)
   
-  summary <- lnrdat[ , .N , .(LAKE_NAME, SURVEY_DATE, DOWLKNUM)]
+  # write.csv(new_v_old_lnr, file = "new_lnr_comparison.csv")
   
-  # write.csv(summary, file = "lnrsurveysummary.csv")  
   
-  lnrdat[ , .N , .(LAKE_NAME, SURVEY_DATE, DOWLKNUM)]
+  names(v2lnr)
+  
+  v2lnr[ , .N , .(LAKE_NAME, SURVEY_ID, SURVEY_DATE, DOWLKNUM)]
+  
+  summary <- v2lnr[ , .N , .(LAKE_NAME, SURVEY_ID, DOWLKNUM)]
+  
+  # write.csv(summary, file = "lnrv2surveysummary.csv")  
+  
+  v2lnr[ , .N , .(LAKE_NAME, SURVEY_ID, DOWLKNUM)]
 
-  int <- data.table(sp = rep("sp", 15), num = 1:15)
+  int <- data.table(sp = rep("sp", 16), num = 1:16)
   
   int[ , spnum := paste(sp,num, sep = "")]
   
-  lnrdat_1 <- separate(lnrdat, OBSERVED_TAXA, into = c(int$spnum) )
+  # lnrdat_1 <- separate(v2lnr, OBSERVED_TAXA, into = c(int$spnum) )
+  # names(lnrdat_1)
   
-  names(lnrdat_1)
+  # try to preserve relative rake abundance vals if any are there
+  summary(v2lnr$OBSERVED_TAXA_REL_ABUND)
   
-  lnrdat_1[ , OBSERVED_TAXA_REL_ABUND := NULL]# drop unneeded col
+  v2lnr[ , OBSERVED_TAXA_REL_ABUND := gsub("}", "", gsub("{", "", OBSERVED_TAXA_REL_ABUND, fixed = TRUE), fixed = TRUE), ]
+  v2lnr[ , OBSERVED_TAXA_REL_ABUND := gsub('"', "", OBSERVED_TAXA_REL_ABUND, fixed = TRUE), ]
   
+  lnrdat_1 <- separate(v2lnr, OBSERVED_TAXA_REL_ABUND , into = c(int$spnum), sep = "," )
   
   lnrdat_1[sp1 == "" , summary(as.factor(VEG_REL_ABUNDANCE_DESCR)) , ]# deal with locs where no veg was found.
   
-  lnrdat_2 <-  melt(lnrdat_1, id.vars = c(1:16, 32:34))
+  names(lnrdat_1)
+  lnrdat_2 <-  melt(lnrdat_1, id.vars = c(1:20))
   
-#' We'll want to simplify these and drop unsampled sites from the data, also
-#' reevaluate what to do with the "sampled subjective sites",  "shoreline 
-#' surveys." For now, I have dropped all of these
+  # move the abundance data out to a new column (anything after the colon)
+  unique(lnrdat_2$value) # There are some abundance data.
+  lnrdat_2 <- separate(lnrdat_2, value , into = c("TAXON","REL_ABUND" ), sep = ":" )
+  
+#' Now we have some cleaning to do. What we have is a generic species column 
+#' (variable) that has important info because it is a placeholder for all points
+#' and where no species were observed at a point, the TAXON column shows "".
+#' For all other points, the TAXON column shows the species code, and the 
+#' REL_ABUND column shows the relative abundance for that species (if recorded).
+#' 
+#' So, we've got three things to do: 1) Mark TAXON as NA where currently "" and
+#' variable == Sp1. 2) Delete the "variable" column. 3) Convert word abundances
+#' to the 1-3 (per Josh Knopik's description of the assignmnet scheme). 
+
+#' We'll want to simplify these and drop unsampled sites from the data: 
+#' unsampled sites should not be used in calculating lake stats, and we haven't
+#' got species data for those sites.  
+
   lnrdat_2[ , SAMPLE_TYPE_DESCR := as.factor(SAMPLE_TYPE_DESCR), ]
   lnrdat_2[, summary(SAMPLE_TYPE_DESCR) , ]
-  
+  lnrdat_2[, summary(as.factor(VEG_REL_ABUNDANCE_DESCR)) , ]
+  lnrdat_2[ SAMPLE_TYPE_DESCR != "sampled", summary(as.factor(VEG_REL_ABUNDANCE_DESCR)) ]
   lnrdat_3 <- lnrdat_2[SAMPLE_TYPE_DESCR == "sampled" , , ] 
+  
+
+#' Mark TAXON blanks as NA for no veg detected  
+  lnrdat_3[ ,.N , VEG_REL_ABUNDANCE_DESCR]
+  lnrdat_3[VEG_REL_ABUNDANCE_DESCR == "vegetation not detected", TAXON:= "novegfound", ]
+  lnrdat_3[ , .N , TAXON]
+  lnrdat_3[ , summary(as.factor(TAXON)),]
+  
+  #these are indeed null species find locations
+  lnrdat_3[ TAXON == "#N/A" , TAXON := OBSERVED_TAXA]
+  lnrdat_3[TAXON== "", TAXON := OBSERVED_TAXA]
+  lnrdat_3[TAXON== "", .N, VEG_REL_ABUNDANCE_DESCR]
+  lnrdat_3[TAXON== "", TAXON := NA ]
+  lnrdat_3[ , summary(as.factor(TAXON)),]
+  
+  #point level non-detection:
+  lnrdat_3[, summary(as.factor(VEG_REL_ABUNDANCE_DESCR))]
+  #whats in those loc's
+  lnrdat_3[VEG_REL_ABUNDANCE_DESCR == "vegetation not detected" , summary(as.factor(TAXON)) ,]
+  #dun
+  
+
+#'2) 
+  lnrdat_3[variable == "sp1" , summary(as.factor(TAXON))]
+  lnrdat_3[variable != "sp1" , summary(as.factor(TAXON))]
+  # drop the "variable" col  
+  lnrdat_3[, variable := NULL, ]
+
+#'3)
+  
+  #convert chr abundances to numeric 1-3
+  lnrdat_3[ , summary(as.factor(REL_ABUND)) , ]
+  lnrdat_3[ REL_ABUND == "sparse", REL_ABUND := "1" , ]
+  lnrdat_3[ REL_ABUND == "common", REL_ABUND := "2" , ]
+  lnrdat_3[ REL_ABUND == "abundant", REL_ABUND := "3" , ]
+  # whats the other stuff in there?
+  lnrdat_3[ REL_ABUND == "few individuals" | REL_ABUND == "many individuals" | REL_ABUND == "single" |    REL_ABUND == "surface matted" , .(TAXON, OBSERVED_TAXA, REL_ABUND) ]
+  
+  #drop zebra mussel observations
+  lnrdat_3[ TAXON == "ZM" , TAXON := NA ]
+  lnrdat_3[ REL_ABUND == "few individuals" | REL_ABUND == "many individuals" | REL_ABUND == "single" |    REL_ABUND == "surface matted" , .(TAXON, OBSERVED_TAXA, REL_ABUND) ]
+  lnrdat_3[ is.na(REL_ABUND) ,.N, .(REL_ABUND, TAXON) ]
+  
+  #inconsistent noting of these metrics means we'll delete them
+  #mark all blanks as NAs (if a survyeor did not mark abundance, they weren't estimating those)
+  lnrdat_3[ !REL_ABUND %in% c("1","2", "3") , REL_ABUND := NA]
+  lnrdat_3[ , summary(as.factor(REL_ABUND)) , ]
+  
+
   
   lnrdat_3[ , SAMPLE_NOTES := as.factor(SAMPLE_NOTES), ] 
   lnrdat_3[ SAMPLE_NOTES != "", .(SAMPLE_NOTES), ] 
   
   lnrdat_3[ , VEG_REL_ABUNDANCE_DESCR := as.factor(VEG_REL_ABUNDANCE_DESCR),  ]
   lnrdat_3[ , summary(VEG_REL_ABUNDANCE_DESCR),]
-
+  lnrdat_3[ , .N, VEG_REL_ABUNDANCE_DESCR]
+  lnrdat_3[ VEG_REL_ABUNDANCE_DESCR == "sparse", VEG_REL_ABUNDANCE_DESCR := "1" , ]
+  lnrdat_3[ VEG_REL_ABUNDANCE_DESCR == "common/frequent/occasional", VEG_REL_ABUNDANCE_DESCR := "2" , ]
+  lnrdat_3[ VEG_REL_ABUNDANCE_DESCR == "abundant/matted", VEG_REL_ABUNDANCE_DESCR := "3" , ]
+  lnrdat_3[ , .N, VEG_REL_ABUNDANCE_DESCR]
+  
 #' We need to delete all of the na's that come from expanding our data, but we
-#' don't want to lose a line of data for points where no veg was found. Luckily 
-#' we have a "" (blank) for spoecies one from our melt function. So, every row 
-#' with value ==NA can get hucked out.     
+#' don't want to lose a line of data for points where no veg was found. 
+#' 
+#' Luckily 
+#' we have a "" (blank) for species one from our melt function. So, every row 
+#' with value == NA can get hucked out.     
   
-  lnrdat_3[VEG_REL_ABUNDANCE_DESCR != 'vegetation not detected', ,]#locs not labeled as veg not det
+  lnrdat_3[VEG_REL_ABUNDANCE_DESCR == 'vegetation not detected', .N , TAXON]#locs labeled as veg not det
   
-  lnrdat_4 <- lnrdat_3[is.na(value) == F]
-  
+  lnrdat_4 <- lnrdat_3[is.na(TAXON) == F]
   
   # lookup scientific names
-  lnrdat_4[ , variable := NULL , ]
-  lnrdat_4[ , TAXA_NUMBER := NULL , ]
+  lnrdat_4[ , sort(unique(TAXON)), ]
   
-  lnrdat_4[ , sort(unique(value)), ]
-  
-  lnrtaxa <- fread(file = "data/contributor_data/macroniche_adds/perleberg/taxalist.csv")
+  lnrtaxa <- fread(file = "data/input/contributor_data/macroniche_adds/perleberg/taxalist.csv")
   #mndnr exported all rare species as "X" so we'll need to add this to the taxalist
-  lnrtaxa <- rbind(lnrtaxa,data.table(SCIENTIFIC_NAME = "Rare Species", TAXA_CODE = "X"))
+  # lnrtaxa <- rbind(lnrtaxa,data.table(SCIENTIFIC_NAME = "Rare Species", TAXA_CODE = "X"))
 
   # # check matches
-  # match(lnrdat_4$value, lnrtaxa$TAXA_CODE)
+  match(unique(lnrdat_4$TAXON), lnrtaxa$TAXA_CODE)
+  unique(lnrdat_4$TAXON)[is.na(match(unique(lnrdat_4$TAXON), lnrtaxa$TAXA_CODE))] # need to change NITO to NITEOBTU to match the lnrtaxa scheme
+  lnrdat_4[TAXON == "NITO", TAXON := "NITEOBTU" ]
+  
+  lnrtaxa$SCIENTIFIC_NAME[match(lnrdat_4$TAXON, lnrtaxa$TAXA_CODE)]
 
-  lnrdat_4[ , taxon := lnrtaxa$SCIENTIFIC_NAME[match(lnrdat_4$value, lnrtaxa$TAXA_CODE)] , ]
+  lnrdat_4[ , taxon := lnrtaxa$SCIENTIFIC_NAME[match(lnrdat_4$TAXON, lnrtaxa$TAXA_CODE)] , ]
   
   lnrdat_4[ , sort(unique(taxon)), ]
   
-  lnrdat_4[ VEG_REL_ABUNDANCE_DESCR == "vegetation not detected" , summary(as.factor(value)), ]
+  lnrdat_4[ VEG_REL_ABUNDANCE_DESCR == "vegetation not detected" , summary(as.factor(taxon)), ] # now we have NA in the taxon col for no veg det
+  lnrdat_4[ VEG_REL_ABUNDANCE_DESCR == "vegetation not detected" , summary(as.factor(TAXON)), ]
+  
   
   #remove datafiles from substeps
   rm(lnrdat_1, lnrdat_2, lnrdat_3, lnrdat, lnrtaxa, int, summary)
@@ -243,11 +319,16 @@
   names(fshdat_2)
   #drop unused columns
   fshdat_2[ , c("OBJECTID","SORT_NAME", "SC_ID", "SS_ID", "FW_ID", "DNR_OFFICE", "STA_CODE", "STA_ID0", "TARGET_LOC", "ACTUAL_LOC", "UTM_SOURCE", "DATA_SOURCE", "SURVEY_STATUS", "PROJECT", "SAMPLETYPE", "LOC_TYPE", "pres","SLICE_lake","UTM_DATUM", "UTM_ZONE", "YEAR") := NULL , ]
-  
+
   summary(lnrdat_4)
   names(lnrdat_4)
   #drop unused columns
-  lnrdat_4[ , c("Project::STATUS","GPScoords::POINT_SPACING_M", "GPScoords::SURVEY_ID") := NULL , ]
+  lnrdat_4[ , c("Project::STATUS", "GPScoords::POINT_SPACING_M", "GPScoords::SURVEY_ID", "DEPTH_STRATA_ACTUAL", "SAMPLE_TYPE_DESCR") := NULL , ]
+  lnrdat_4[, SURVEYORS := paste(SURVEYOR_A,SURVEYOR_B,SURVEYOR_C, sep ="," )]
+  lnrdat_4[ , unique(SURVEYORS),]
+  lnrdat_4[ , c("SURVEYOR_A", "SURVEYOR_B", "SURVEYOR_C", "OBSERVED_TAXA") := NULL ,]
+  
+  
   
   summary(sldat)
   names(sldat)
@@ -258,11 +339,13 @@
 # clean column names -------------------------------------------------------
 
 #' ### Clean column names
-  cbind(names(fshdat_2),names(lnrdat_4), names(sldat))
+  cbind(names(sldat), names(fshdat_2),names(lnrdat_4) )
 
   setcolorder(sldat,  c(  1,2,3,4,5,7,9, 11, 6,10,8))
   setcolorder(fshdat_2,c(1,2,6,7,3,9,10,13,11,12, 4, 5,8))
-  setcolorder(lnrdat_4, c(2,3,1,5,4,7,8, 17, 9, 16,14,15,10,11,12,13))
+  setcolorder(lnrdat_4, c(1,2,8,7,5,
+                          3,6,14,9,12,
+                          10,11,15,13,4))
   
   cbind(names(fshdat_2),names(lnrdat_4), names(sldat))  
   
@@ -283,18 +366,11 @@
   names(sldat)[8] <- "TAXON"
   names(fshdat_2)[8] <- "TAXON"
   names(lnrdat_4)[8] <- "TAXON"
-  
   names(lnrdat_4)[13] <- "SURVEYOR"
-  lnrdat_4[, SURVEYOR:= paste(SURVEYOR,SURVEYOR_B,SURVEYOR_C, sep = ";") , ]
-  lnrdat_4[ , c("SURVEYOR_B","SURVEYOR_C") := NULL,]
-
-  cbind(names(fshdat_2),names(lnrdat_4), names(sldat))  
-  
   names(lnrdat_4)[11] <- "UTMX"
   names(lnrdat_4)[12] <- "UTMY"
-  
+
   cbind(names(fshdat_2),names(lnrdat_4), names(sldat))  
-  
   
   str(sldat)
   str(lnrdat_4)
@@ -344,7 +420,6 @@
     dnrdat[  , sort(summary(TAXON)) , ]
     
     dnrdat[ , summary(as.factor(VEG_REL_ABUNDANCE_DESCR)),] #from lnr
-    dnrdat[ , summary(as.factor(SAMPLE_TYPE_DESCR)),] #from lnr retain in case we want to drop the "shoreline plots" (n = 692)
     dnrdat[ , summary(as.factor(HAS_DATA)),] #from fsh ( X, Y == sampled found veg; Z = sampled, no veg found)
     dnrdat[ , summary(as.factor(sample_point_surveyed)),] #from sl
     
@@ -352,6 +427,9 @@
     dnrdat <- subset(dnrdat, is.na(sample_point_surveyed) == T |
                        sample_point_surveyed == "yes" , )
     dnrdat[ , sample_point_surveyed := NULL, ]
+    
+    dnrdat[HAS_DATA == "Z" , summary(TAXON)] #from fsh ( X, Y == sampled found veg; Z = sampled, no veg found)
+    
     
 #' These are observations of plants that are conflicting with other fields. We 
 #' will assign all of these points a TAXON of no veg found.
@@ -367,13 +445,18 @@
               HAS_DATA == "Z" |
               VEG_REL_ABUNDANCE_DESCR == "vegetation not detected",
             TAXON := "No Veg Found",]
+    
     #drop HAS_DATA and VEG_REL_ABUNDANCE_DESCR
     dnrdat[ , c("HAS_DATA","VEG_REL_ABUNDANCE_DESCR") := NULL, ]
     
     dnrdat[ TAXON == "No Veg Found",summary(TAXON) ,]
     dnrdat[ ,summary(TAXON) ,]
-    dnrdat[ is.na(TAXON), ,]
-    dnrdat[SURVEY_ID == "18009000_2009_1" & STA_NBR == 205, TAXON := "Calamagrostis" , ] # CALAMA code checked from LnR submitted taxalist
+    dnrdat[ is.na(TAXON), ,] 
+    
+    # Filamentous Algae! (Add names)
+    dnrdat[TAXACODE == "FA" ,  ,]
+    dnrdat[TAXACODE == "FA" , TAXON := "Filamentous Algae spp." ,]
+    
     
 # resolve date data -------------------------------------------------------
   
@@ -412,8 +495,9 @@
     dnrdat[ , summary(DEPTH_FT), ]
     dnrdat[ DEPTH_FT > 99 , , ]
     dnrdat[ is.na(DEPTH_FT), , ]
+
 #' SOme of these points are good, some appear to be incorrect data entries.
-#' We'll leave them be for no, with the assumption that we will only use
+#' We'll leave them be for now, with the assumption that we will only use
 #' complete entries in our analysis. 
 
 
@@ -484,13 +568,14 @@
     dnrdat [ , TAXON := droplevels(TAXON),]
     dnrdat[ , sort(unique(as.character(TAXON))),]
     
+    
 # review dataset and export -----------------------------------------------
 
 #' ## Review and Export dataset    
     
     str(dnrdat)
     dnrdat [ , SUBSTRATE := droplevels(SUBSTRATE),]
-    dnrdat [ , SAMPLE_TYPE_DESCR := droplevels(SAMPLE_TYPE_DESCR),]
+    dnrdat [ , SAMPLE_NOTES := droplevels(SAMPLE_NOTES),]
     
     dnrdat[ , .N , TAXON] #n occurrences by spp
     dnrdat[ , .N , c("SURVEY_ID","DATASOURCE")] #n obseravtion in each survey (total lines = n surveys)
