@@ -10,6 +10,8 @@
 #'           collapsed: false
 #'---
 
+#' 24 March 2020
+
 #' This script will compile PI data for a bunch of different surveyors who have
 #' submitted data.The script pulls data (points in rows, species in columns) in
 #' and merges columns together where names match. Where a new column name comes 
@@ -3144,9 +3146,9 @@ ps[,sample_taken:= NULL]
    # fix up names for merge
    setnames(ps, "SURVEY_ID", "SURVEY_ID_DATASOURCE")
    setnames(ps, "taxon", "TAXON")
-   dnrdat[ , TAXACODE := NULL , ]
-   dnrdat[ , DENS := NA , ]
-   setnames(ps, "rake", "DENS")
+   setnames(ps, "rake", "REL_ABUND")
+   setnames(ps, "whole_rake_density", "VEG_REL_ABUNDANCE_DESCR")
+    dnrdat[ , TAXACODE := NULL , ]
    ps[ , SAMPLE_NOTES := paste(SAMPLE_NOTES,SURVEY_NOTES,sep = ";")]
    ps[ , SURVEY_NOTES := NULL , ]
    
@@ -3157,25 +3159,25 @@ ps[,sample_taken:= NULL]
    
    dnrdat[] <- lapply(dnrdat[], as.character)
    
-   king <- merge(ps , dnrdat, by = c("DOWLKNUM", "LAKE_NAME", "DATASOURCE", "SURVEY_DATE", "STA_NBR", "DEPTH_FT", "SUBSTRATE","SURVEYOR", "SURVEY_ID_DATASOURCE", "TAXON", "SAMPLE_NOTES", "DENS"),  all = T )
+   king <- merge(ps , dnrdat, by = c("DOWLKNUM", "LAKE_NAME", "DATASOURCE", "SURVEY_DATE", "STA_NBR", "DEPTH_FT", "SUBSTRATE","SURVEYOR", "SURVEY_ID_DATASOURCE", "TAXON", "SAMPLE_NOTES", "REL_ABUND", "VEG_REL_ABUNDANCE_DESCR"),  all = T )
    
    
    # clean up product:
    
    str(king)
    names(king)
-   setcolorder(king, c(1:9,11,10,12:18,21:22, 19:20, 23:27))
+   setcolorder(king, c(1:6,10,12,13,7:9,11,20,23, 14:19,21:22, 24:26))
    
-   # unneeded columns
-   king[ , summary(factor(SAMPLE_TYPE_DESCR)) , ]
-   king[ , SAMPLE_TYPE_DESCR := NULL ,]
-   
+
    # NO veg found:
    sort(unique(king$TAXON))
    king[TAXON == "no_taxa_found", TAXON := "No Veg Found"]
    
    # if no veg found, assign dens as NA
-   king[TAXON == "No Veg Found", DENS := NA]
+   king[TAXON == "No Veg Found", unique(REL_ABUND)]
+   king[TAXON == "No Veg Found", REL_ABUND := NA]
+   
+   
    
    
 # review and export dataset -----------------------------------------------
@@ -3189,7 +3191,7 @@ ps[,sample_taken:= NULL]
    
    #create new, unique survey ID for each survey
    king[, SURVEY_ID := as.integer(SURVEY_ID),]
-   king[, SURVEY_ID := .GRP ,.(DOWLKNUM, SURVEY_DATE)]
+   king[, SURVEY_ID := .GRP ,.(DOWLKNUM, SURVEY_ID_DATASOURCE)]
    
    #and a unique ID for each sample point (groups the plant obs)
    king[, POINT_ID := as.integer(POINT_ID),]
@@ -3247,7 +3249,7 @@ ps[,sample_taken:= NULL]
    
 #' And here we have it-- the king of all PI databases
 
-   king[ TAXON == "Potamogeton amplifolius" , .N  , .(SURVEY_DATE,DOWLKNUM)  ]
+   king[ TAXON == "Potamogeton amplifolius" , .N  , .(SURVEY_ID,DOWLKNUM)  ]
    
    #write.csv(king, file = "data/output/plant_surveys_mn.csv")
    

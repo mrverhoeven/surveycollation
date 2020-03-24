@@ -446,8 +446,8 @@
               VEG_REL_ABUNDANCE_DESCR == "vegetation not detected",
             TAXON := "No Veg Found",]
     
-    #drop HAS_DATA and VEG_REL_ABUNDANCE_DESCR
-    dnrdat[ , c("HAS_DATA","VEG_REL_ABUNDANCE_DESCR") := NULL, ]
+    #drop HAS_DATA 
+    dnrdat[ , HAS_DATA := NULL, ]
     
     dnrdat[ TAXON == "No Veg Found",summary(TAXON) ,]
     dnrdat[ ,summary(TAXON) ,]
@@ -582,7 +582,7 @@
     dnrdat[ , length(unique(SURVEY_ID)) , DATASOURCE ] #nsurveys submitted by each DNR contributor
     
     names(dnrdat)[3] <- "SURVEY_ID_DATASOURCE"
-    names(dnrdat)[16] <- "POINT_LVL_SECCHI"
+    names(dnrdat)[17] <- "POINT_LVL_SECCHI"
     
     #create new, unique survey ID for each survey
     dnrdat[ , .N , c("SURVEY_ID_DATASOURCE","DATASOURCE")]
@@ -661,6 +661,8 @@
 #'   EWR Lake Habitat Program. Minnesota Department of Natural Resources. 
 #'   Ecological and Water Resources Division. Brainerd, MN. 128 pages including
 #'   Appendices A-E.  
+#'  **VEG_REL_ABUNDANCE_DESCR** - whole rake rake abundance
+#'  **REL_ABUND** - single species rake abundace
 #'  **POINT_LVL_SECCHI** - Secchi observations taxen at samling locations as
 #'   collected only in the Muthukrishnan Et al dataset.  
 #'  **SURVEY_ID** - Unique ID assigned to each survey in this dataset  
