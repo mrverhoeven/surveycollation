@@ -3251,6 +3251,23 @@ ps[,sample_taken:= NULL]
 
    king[ TAXON == "Potamogeton amplifolius" , .N  , .(SURVEY_ID,DOWLKNUM)  ]
    
+#' From DOW issue raised by wes:
+   DOWfixes <- data.table(dow_original = c( 17004800, 27003500, 27009500, 27011100, 34015000, 41002100, 47004900, 47015401, 47015402, 66000290, 70050000, 81001400, 82011600, 87006001), 
+                         dow_new = c( 17004802, 27003502, 27009501, 27011102, 34015100, 41002101, 47004901, 47015400, 47015400, 66002900, 70005000, 81001401, 82011602, 87006000))
+   
+   summary(match(king$DOWLKNUM,DOWfixes$dow_original))
+   is.na(match(king$DOWLKNUM,DOWfixes$dow_original)) == F
+   king[is.na(match(king$DOWLKNUM,DOWfixes$dow_original)) == F, DOWLKNUM , ]
+   
+   king[is.na(match(king$DOWLKNUM,DOWfixes$dow_original)) == F, 
+        DOWLKNUM := as.character(DOWfixes[ match(
+          king[is.na(match(king$DOWLKNUM,DOWfixes$dow_original)) == F, DOWLKNUM , ],
+          DOWfixes$dow_original
+        ),dow_new]) , ]
+   
+   
+   
+   
    #write.csv(king, file = "data/output/plant_surveys_mn.csv")
    
    
