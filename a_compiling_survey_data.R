@@ -10,7 +10,7 @@
 #'           collapsed: false
 #'---
 
-#' 24 March 2020
+#' 30 March 2020
 
 #' This script will compile PI data for a bunch of different surveyors who have
 #' submitted data.The script pulls data (points in rows, species in columns) in
@@ -3137,7 +3137,7 @@ ps[,sample_taken:= NULL]
 # merge with DNR data -----------------------------------------------------
 
 #' Now we can merge these surveys into the MNDNR datasets.
-  dnrdat <- fread(input = "data/output/DNR_PI_Data_Combined.csv", drop = 1)
+   dnrdat <- fread(input = "data/output/DNR_PI_Data_Combined.csv", drop = 1)
 
    #check name alignment
    cbind(names(dnrdat),names(ps))
@@ -3176,8 +3176,6 @@ ps[,sample_taken:= NULL]
    # if no veg found, assign dens as NA
    king[TAXON == "No Veg Found", unique(REL_ABUND)]
    king[TAXON == "No Veg Found", REL_ABUND := NA]
-   
-   
    
    
 # review and export dataset -----------------------------------------------
@@ -3219,20 +3217,25 @@ ps[,sample_taken:= NULL]
    
    #change TAXON to NO_VEG_FOUND
    setnames(king, "TAXON", "NO_VEG_FOUND")
-   king[  , NO_VEG_FOUND := NO_VEG_FOUND == "No Veg Found" ,]
    
    # drop Taxa marked for deletion
    king[ , sort(unique(TAXONC)) ,]
    
-   # this is rare species, ferns, alga
-   king[ TAXONC == "DELETE" , TAXONC , ]
+   # this is ferns, alga, etc
+   king[ TAXONC == "DELETE" , NO_VEG_FOUND , ]
    
-   king[ is.na(TAXONC) == F & 
-           TAXONC == "DELETE" , TAXONC , ]
+   #now we need to ensure we retain rows where no useable taxa were found
+   king[ NO_VEG_FOUND == "No Veg Found", , ]
+   king[ NO_VEG_FOUND == "No Veg Found", NO_VEG_FOUND := "TRUE" , ]
+   king[ NO_VEG_FOUND != "TRUE", NO_VEG_FOUND := "FALSE" , ]
    
-   king <- king[ is.na(TAXONC) == T | 
-           TAXONC != "DELETE" , ,  ]
+   #make all the DELETE TAXA into NAs
+   king[TAXONC == "DELETE" , TAXONC := NA , ]
    
+   #now delete all rows where TAXON == NA & NO_VEG_FOUND == F
+   king[is.na(TAXONC) & NO_VEG_FOUND == F, ]
+   king <- king[!(is.na(TAXONC) & NO_VEG_FOUND == F), ]
+
    setnames(king, "TAXONC", "TAXON")
    
    
@@ -3268,7 +3271,7 @@ ps[,sample_taken:= NULL]
    
    
    
-   #write.csv(king, file = "data/output/plant_surveys_mn.csv")
+   write.csv(king, file = "data/output/plant_surveys_mn.csv", row.names = F)
    
    
    
