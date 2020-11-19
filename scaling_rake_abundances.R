@@ -49,6 +49,7 @@
 #' Here we implement these changes and we review the N of presence absence
 #' versus rel rake density surveys.
 #' 
+#' ##'Load Workspace
 
 # load libraries ----------------------------------------------------------
 
@@ -63,6 +64,8 @@ king <- fread(file = "data/output/plant_surveys_mn.csv")
 
 # grab records with rake abundance data ----------------------------------------
 
+#' ## Review dataset and issue in question 
+
 names(king)
 
 #how many total surveys in the dataset?
@@ -75,10 +78,10 @@ king[!is.na(REL_ABUND) , .N , SURVEY_ID] # 1122 surveys
 #by survey
 hist(king[!is.na(REL_ABUND) , max(REL_ABUND) , SURVEY_ID][,V1])
 
-#contibutor-era
+# and by contibutor-era
 hist(king[!is.na(REL_ABUND) , max(REL_ABUND) , .(DATASOURCE,year(as.POSIXct(SURVEY_DATE, format = "$Y-$m-$d")))][,V1])
 
-#append contrib-era-max to data
+#append contrib-era-max field to data (prep for later sorting and manip)
 king[!is.na(REL_ABUND)  , CONTERAMAXRAKE:= max(REL_ABUND) , 
      .(DATASOURCE,year(as.POSIXct(SURVEY_DATE, format = "$Y-$m-$d"))) # contributor-era
      ]
@@ -89,14 +92,17 @@ hist(king[!is.na(REL_ABUND)  , mean(CONTERAMAXRAKE) , SURVEY_ID][,V1])
 #and for comparison, this is what we would have said is we'd used max vals w/in surveys:
 hist(king[!is.na(REL_ABUND)  , max(REL_ABUND) , SURVEY_ID][,V1])
 
-#' # Contributor-era max and and survey max produce different results.
+#' ## Determining the rake scale used
 #' 
-#' We'll then compile these surveys both ways, noting that contributor-era
+#' Contributor-era max and and survey max produce different results.
+#' 
+#' We'll compile these surveys both ways, noting that contributor-era
 #' max rake densities suffer from the contributor not always being the surveyor.
+#'  At the end, we'll review what each approach gave us and pick one.
 #' 
-#' 
+#' ## Survey level max (method 1)
 
-# do changes by survey -------------------------------------------
+# implement changes by survey -------------------------------------------
 
 #drop surveys with max vals of 1s and 1-2s
 rakes1 <- king[SURVEY_ID %in% king[!is.na(REL_ABUND)  , max(REL_ABUND) , SURVEY_ID  ][V1 %in% c(3,4,5),SURVEY_ID], ]
@@ -132,6 +138,8 @@ rakes1[ , .N , SURVEY_ID ] # N points per survey (includes NA's--points where no
 
 
 # do changes by contributor-era -------------------------------------------
+
+#' ## Contributor-era maximums used to det rake scale (method 2)
 
 #how many contributor-eras and whats max rake dens for each?
 king[!is.na(REL_ABUND)  , max(REL_ABUND) , 
@@ -226,6 +234,15 @@ rd_surveys_method2 <- ggplot(rakes2[ , .N , .(SURVEY_DATE, SURVEY_ID)], aes(year
   ylab("N surveys")+
   labs(title = "rake surveys conducted per year (method2)")
 
+#' ## Sample sizes
+
+grid.arrange(king_points,rd_points_method1, rd_points_method2,king_surveys,rd_surveys_method1, rd_surveys_method2, ncol = 3, nrow = 2)
+
+
+
+
+
+
 #distribution of rake densities
 
 uncorrected_desities <- 
@@ -261,7 +278,9 @@ corrected_method2 <-
   ylim(c(0,160000))+
   labs(title = "method2")
 
-grid.arrange(uncorrected_desities,corrected_method1,corrected_method2,uncorrected_desities_3scale_survey, ncol = 5)
+#' ## Density distributions 
+
+grid.arrange(uncorrected_desities,corrected_method1,corrected_method2,uncorrected_desities_3scale_survey, ncol = 4)
 
 #' # Which method of determining max rake density was best?
 #' 
@@ -275,10 +294,11 @@ grid.arrange(uncorrected_desities,corrected_method1,corrected_method2,uncorrecte
 #' Given this conclusion (method 1 is better of the two options), let's export
 #' the dataset for use in other projects:
 #' 
+#' #' #3 Output cleaned data
 
 str(rakes1)
 
-write.csv(rakes1, file = "data/output/rake_abund_surveys_mn.csv" )
+# write.csv(rakes1, file = "data/output/rake_abund_surveys_mn.csv" )
 
 
 
