@@ -3273,7 +3273,16 @@ ps[,sample_taken:= NULL]
    
    write.csv(king, file = "data/output/plant_surveys_mn.csv", row.names = F)
    
+   king <- fread(file = "data/output/plant_surveys_mn.csv")
    
+   king[ , .N, SURVEY_ID][, summary(N), ]
+   
+   samplesizes <- king [ , length(unique(POINT_ID)), SURVEY_ID][ , V1,]
+   
+   mean(samplesizes)
+   sd(samplesizes)
+   
+   hist(samplesizes, breaks = 500, xlim = c(0,500))
    
 # footer ------------------------------------------------------------------
 #' ## Document footer 
