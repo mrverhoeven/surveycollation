@@ -10,8 +10,6 @@
 #'           collapsed: false
 #'---
 
-#' 30 March 2020
-
 #' This script will compile PI data for a bunch of different surveyors who have
 #' submitted data.The script pulls data (points in rows, species in columns) in
 #' and merges columns together where names match. Where a new column name comes 
@@ -3267,13 +3265,16 @@ ps[,sample_taken:= NULL]
           king[is.na(match(king$DOWLKNUM,DOWfixes$dow_original)) == F, DOWLKNUM , ],
           DOWfixes$dow_original
         ),dow_new]) , ]
+
+#' ## Export dataset
    
+   # write.csv(king, file = "data/output/plant_surveys_mn.csv", row.names = F)
    
+#' ## Pull data back in   
    
+   # king <- fread(file = "data/output/plant_surveys_mn.csv")
    
-   write.csv(king, file = "data/output/plant_surveys_mn.csv", row.names = F)
-   
-   king <- fread(file = "data/output/plant_surveys_mn.csv")
+#' check out sample size in surveys:   
    
    king[ , .N, SURVEY_ID][, summary(N), ]
    
@@ -3283,6 +3284,27 @@ ps[,sample_taken:= NULL]
    sd(samplesizes)
    
    hist(samplesizes, breaks = 500, xlim = c(0,500))
+   
+#' fix duplicated survye with incorrect lake ID   
+   # "cedar" survey (the bad one)
+   king[SURVEY_ID == 2108]
+   # identical silver survey
+   king[SURVEY_ID == 2392]
+   
+   king <- king[!SURVEY_ID == 2108]
+
+   
+#' ## Export dataset
+   
+   # write.csv(king, file = "data/output/plant_surveys_mn.csv", row.names = F)
+   
+   
+   
+   
+   
+   
+   
+   
    
 # footer ------------------------------------------------------------------
 #' ## Document footer 
