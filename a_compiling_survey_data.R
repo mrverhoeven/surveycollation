@@ -3200,8 +3200,12 @@ ps[,sample_taken:= NULL]
    
   # write.csv(king, file = "data/output/plant_surveys_all.csv")
 
-# clean up  taxonomy ------------------------------------------------------
-  
+# clean up  taxonomy using macroniche (see paper or git repo) taxonomy ------------------------------------------------------
+
+#' Verhoeven, M. R., Glisson, W. J., & Larkin, D. J. (2020). Niche models 
+#' differentiate potential impacts of two aquatic invasive plant species on 
+#' native macrophytes. Diversity, 12, 162. https://doi.org/10.3390/d12040162
+   
    # pull in taxonomy corrections:
    
    tnrs <- fread( file = "data/output/tnrs.final.csv", drop = 1)
@@ -3251,7 +3255,12 @@ ps[,sample_taken:= NULL]
 #' And here we have it-- the king of all PI databases
 
    king[ TAXON == "Potamogeton amplifolius" , .N  , .(SURVEY_ID,DOWLKNUM)  ]
+
+
+# fix issue #1 from github ------------------------------------------------
+
    
+      
 #' From DOW issue raised by wes:
    DOWfixes <- data.table(dow_original = c( 17004800, 27003500, 27009500, 27011100, 34015000, 41002100, 47004900, 47015401, 47015402, 66000290, 70050000, 81001400, 82011600, 87006001), 
                          dow_new = c( 17004802, 27003502, 27009501, 27011102, 34015100, 41002101, 47004901, 47015400, 47015400, 66002900, 70005000, 81001401, 82011602, 87006000))
@@ -3285,6 +3294,11 @@ ps[,sample_taken:= NULL]
    
    hist(samplesizes, breaks = 500, xlim = c(0,500))
    
+
+# fix issue #7 from github ------------------------------------------------
+
+   
+   
 #' fix duplicated survye with incorrect lake ID   
    # "cedar" survey (the bad one)
    king[SURVEY_ID == 2108]
@@ -3298,12 +3312,17 @@ ps[,sample_taken:= NULL]
    
    # write.csv(king, file = "data/output/plant_surveys_mn.csv", row.names = F)
    
+
    
    
    
    
    
    
+   
+
+# cursor catcher ----------------------------------------------------------
+
    
    
 # footer ------------------------------------------------------------------

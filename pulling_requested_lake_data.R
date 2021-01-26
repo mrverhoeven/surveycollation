@@ -68,8 +68,17 @@ king[SURVEY_ID == 2662, .N, .(STA_NBR, DATASOURCE, SURVEY_DATE)]
 king[SURVEY_ID == 2662 &
        TAXON == "Myriophyllum spicatum", .N, .(STA_NBR, DATASOURCE, SURVEY_DATE)] # this is LIKLEY an entry error, but we cannot tell from this, the data appear to have been "region signed"
 
-#' Thes
+#' ## how many CLP and how many EWM surveys
+#' 
+#' 
 
 
+  king[TAXON %in% c("Myriophyllum spicatum", "Potamogeton crispus") , length(unique(SURVEY_ID)) , TAXON ]
+  king [, length(unique(SURVEY_ID)) ,]
 
+  
+  
+  king[!is.na(TAXON), .( lake = mean(as.numeric(DOWLKNUM)), date = mean.Date(SURVEY_DATE), maxvegdepth = max(DEPTH_FT)), SURVEY_ID]
+  
+  
 

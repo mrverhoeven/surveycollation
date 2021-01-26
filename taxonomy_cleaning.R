@@ -102,5 +102,21 @@
   write.csv(tnrs.final, file = "data/output/tnrs.final.csv" )
   
   
+
+# -------------------------------------------------------------------------
+
+#' export taxonomy for Dan Larkin on 25 Jan 2021 for use in JSDM project with 
+#' Shyam Thomas, et al.
+  
+  
+  king <- fread(file = "data/output/plant_surveys_mn.csv")
+  
+  
+  taxalist <- king[ , .(TAXON = unique(TAXON)) ,]
+  
+  # write.csv(taxalist, file = "data/output/taxalist_25Jan2021.csv")
+  
+  
+  taxalist
   
   
