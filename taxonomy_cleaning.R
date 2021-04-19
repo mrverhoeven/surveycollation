@@ -31,6 +31,11 @@
   #Surveys from other sources
   ps <- fread(input = "data/output/Surveys_cleaning4Dec.csv")
 
+  
+
+# do stuff ----------------------------------------------------------------
+
+
 # pull taxon lists off of each
   psD[ , .N , TAXON]
   DNRtax <- psD[ , .N , TAXON]
@@ -103,7 +108,7 @@
   
   
 
-# -------------------------------------------------------------------------
+# Re-export from king for JDSM-------------------------------------------------------------------------
 
 #' export taxonomy for Dan Larkin on 25 Jan 2021 for use in JSDM project with 
 #' Shyam Thomas, et al.
