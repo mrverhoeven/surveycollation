@@ -24,12 +24,11 @@ vignettes/*.pdf
 *.knit.md
 # Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
 rsconnect/
-
 #msproducts
 .ppt
 cleaned
 surveycollation.Rproj
 *.xls*
 .Rproj.user
-
 /data/**
+cedar_PI_pts.png
