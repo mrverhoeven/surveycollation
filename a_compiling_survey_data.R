@@ -2489,7 +2489,7 @@ colnames(ps) <- word(string = names(ps), start = -2, sep = "--")
 sort(names(ps))
 
 
-# progress checkpoint -----------------------------------------------------
+   # progress checkpoint -----------------------------------------------------
 
 #' save progress as a .csv file in the output folder
 
@@ -2992,7 +2992,7 @@ ps <- subset(ps, is.na(ps$DEPTH_FT) != T |
                ps$not_sampled == "1" )
 
 
-NULL# other point level features ----------------------------------------------
+# other point level features ----------------------------------------------
 
 #' Whats next?  
 names(ps)
