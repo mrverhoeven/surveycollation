@@ -602,10 +602,86 @@
   plants[ , LAKE_NAME := lake]
   plants[ , lake := NULL]  
   
-  plants    
+  
+  #reformat fields we want to keep:
+  names(plants)[names(plants) == "STA_NBR"] <- "STA_NBR_DATASOURCE"
+  names(plants)[names(plants) == "VEG_REL_ABUNDANCE_DESCR"] <- "WHOLE_RAKE_REL_ABUND"  
+  names(plants) <- toupper(names(plants))
+   
+  
+  #tackle issue #12 from github
+  plants[ , length(unique(DEPTH_FT)) , .(POINT_ID) ][V1>1]
+  
+  #we have to reassign point ids now because we have merged and split some surveys:
+  
+  
+  
+  #new unique ID for each sample point (groups the plant obs)
+  plants[!is.na(POINT_ID), POINT_ID := as.integer(POINT_ID),]
+  plants[!is.na(POINT_ID), POINT_ID := .GRP, by = c("STA_NBR_DATASOURCE", "SURVEY_ID")]
+  
+  #and a unique ID for each observation in the dataset
+  plants[!is.na(POINT_ID), OBS_ID := .I]
+  
+  #round off our depth data:
+  plants[ , DEPTH_FT := round(DEPTH_FT, digits = 1)]
+  #how many still probematic?
+  hist(plants[ , length(unique(DEPTH_FT)) , .(POINT_ID) ][V1>1][,V1])
+  plants[POINT_ID %in% plants[ , length(unique(DEPTH_FT)) , .(POINT_ID) ][V1>1][, POINT_ID]]
+    #who
+    plants[ , Nsamp := length(unique(POINT_ID))  , .(SURVEY_ID)]
+    plants[POINT_ID %in% plants[ , length(unique(DEPTH_FT)) , .(POINT_ID) ][V1>1][, POINT_ID] ,.N, .(LAKE_NAME, SUBBASIN, SURVEY_DATE, COHORT, DATASOURCE, SURVEY_ID, Nsamp )][order(N)]
+    
+    #make histogram of number of issues per survey          
+    hist(plants[POINT_ID %in% plants[ , length(unique(DEPTH_FT)) ,
+                                                .(POINT_ID) ][V1>1][, POINT_ID] ,.N,
+                          .(LAKE_NAME, SUBBASIN, DATASOURCE, SURVEY_ID )][ ,N])
+    #weaver
+    plants[ SURVEY_ID == 1268 ,  , ]
+    plants[ SURVEY_ID == 1268 & STA_NBR_DATASOURCE ==9 , INDATABASE := F]
+    plants <- plants[!(SURVEY_ID == 1268 & INDATABASE == T)]
+    plants[ SURVEY_ID == 1268 , c(5:12, 14:26) := NA , ]
     
     
+    #benton 1824
+    plants[ SURVEY_ID == 1824 ,  , ]
+    plants[ SUBMISSION_NOTES == "CLP Only;" , ]
+    plants[ SURVEY_ID == 1824 & STA_NBR_DATASOURCE ==98 , INDATABASE := F]
+    plants <- plants[!(SURVEY_ID == 1824 & INDATABASE == T)]
+    plants[ SURVEY_ID == 1824 , c(5:12, 14:26) := NA , ]
     
+    
+    #silver
+    plants[ SURVEY_ID == 2396 ,  , ]
+    plants[ SURVEY_ID == 2396 & STA_NBR_DATASOURCE == 1 & DEPTH_FT ==1.5 , INDATABASE := F]
+    plants <- plants[!(SURVEY_ID == 2396 & INDATABASE == T)]
+    plants[ SURVEY_ID == 2396 , c(5:12, 14:26) := NA , ]
+    
+    
+    #E phelps 
+    plants[ SURVEY_ID == 1292 ,  , ][order(STA_NBR_DATASOURCE)]
+    plants[SURVEY_ID == 1292 , unique(DEPTH_FT), POINT_ID][order(POINT_ID)]
+    plants[ SURVEY_ID == 1292 , length(unique(DEPTH_FT)) , .(POINT_ID) ][V1 > 1][ , POINT_ID]
+    
+    plants[ POINT_ID %in% plants[ SURVEY_ID == 1292 , length(unique(DEPTH_FT)) , .(POINT_ID) ][V1 > 1][ , POINT_ID] , , ] #these were genuinely bad entries. Confirmed by pulling up the raw data.
+    
+    #retain the rest and renumber the point ID
+    plants[ , POINT_ID := .GRP , .(SURVEY_ID,STA_NBR_DATASOURCE,DEPTH_FT)  ]
+    
+    
+#' Any other QA I can do?
+    
+    
+    plants[ , length(unique(POINT_ID)) , SURVEY_ID]
+    hist(plants[ , length(unique(POINT_ID)) , SURVEY_ID][ , V1])
+    hist(plants[ , length(unique(TAXON)) , SURVEY_ID][ , V1])
+    hist(plants[ , length(unique(TAXON)) , POINT_ID][ , V1])
+    
+    hist(plants[ , length(unique(TAXON)) , SURVEY_ID][ , V1])
+    
+   
+  #write to file:
+  #write.csv(plants, file = "data/output/plant_surveys_mn.csv")
   
   
 # cursor catcher ----------------------------------------------------------
