@@ -3313,15 +3313,45 @@ ps[,sample_taken:= NULL]
    # write.csv(king, file = "data/output/plant_surveys_mn.csv", row.names = F)
    
 
-   
-   
-   
-   
-   
-   
-   
 
-# cursor catcher ----------------------------------------------------------
+# fix issue #12 from github -----------------------------------------------
+
+
+#' ## Pull data back in   
+   
+   # king <- fread(file = "data/output/plant_surveys_mn.csv")
+   
+   #check for duplicated points
+   king[ ,length(unique(DEPTH_FT)) , .(POINT_ID) ][V1>1] #1035 
+   #rounding issue:
+   king[ ,length(unique(round(DEPTH_FT, 2))) , .(POINT_ID) ][V1>1] #860
+   #implement round
+   king[ ,DEPTH_FT := round(DEPTH_FT, 2)]
+   
+   #peel off the offending data to dig into WHY?
+   double_depths <- king[POINT_ID %in% 
+                           king[ ,length(unique(DEPTH_FT)) , .(POINT_ID) ][V1>=2, POINT_ID, ]]
+   
+   #lets trim up the double depths item as we strategize how to deal with these issues:
+   
+   #for benton lake surveys we'll drop randomly either the N or S subpoint: 4196 to 3690
+   double_depths <- double_depths[!LAKE_NAME == "benton"]
+   
+   
+   
+   # for some lakes from Jill sweet they are coming out as 2 unique depths but aren't actually:
+   king[DATASOURCE == "Jill Sweet" & 
+          LAKE_NAME == "sunny" & 
+          SURVEY_DATE == "2015-09-14" &
+          STA_NBR == "1", DEPTH_FT ]
+   # rounding those depths will eliminate a bunch of those (must contain slight rounding diffs in depths)
+   king[ ,length(unique(round(DEPTH_FT, 2))) , .(POINT_ID) ][V1>1]
+   #this will NEED to happen AFTER the random selection of subpoint retention in the benton surveys because those are geniunely two separate samples.
+     double_depths <- double_depths[POINT_ID %in% double_depths[ ,length(unique(round(DEPTH_FT, 2))) , .(POINT_ID) ][V1>1, POINT_ID]]
+   
+   
+   
+   # cursor catcher ----------------------------------------------------------
 
    
    

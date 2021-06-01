@@ -57,7 +57,7 @@
     #change column name to avoid using backtick quotes
     names(submissions)[8] <- "survey_date"
     
-    #are there any zany date sin the batch?
+    #are there any zany dates in the batch?
     submissions[ , unique(survey_date) , ]
     submissions[survey_date == "", survey_date:= NA]
     submissions[ , summary(survey_date) , ]
