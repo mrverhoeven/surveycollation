@@ -3314,7 +3314,7 @@ ps[,sample_taken:= NULL]
    
 
 
-# fix issue #12 from github -----------------------------------------------
+# issue #12 from github -----------------------------------------------
 
 
 #' ## Pull data back in   
