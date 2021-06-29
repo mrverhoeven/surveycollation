@@ -679,11 +679,34 @@
     
     hist(plants[ , length(unique(TAXON)) , SURVEY_ID][ , V1])
     
-   
+    plants[ , Nsamp := NULL]
+
+    
   #write to file:
   #write.csv(plants, file = "data/output/plant_surveys_mn.csv")
-  
-  
+   
+    
+    
+    
+    
+    
+    
+   
+#' github issue #14 O'Dowd DOW wrong:
+#' 
+  # read in surveys
+    plants <- fread(input = "data/output/plant_surveys_mn.csv")
+    
+    plants[ DOW == 7009500, DOW:= 70009500]
+    
+    
+    #write to file:
+    #write.csv(plants, file = "data/output/plant_surveys_mn.csv")
+    
+    
+    
+    
+    
 # cursor catcher ----------------------------------------------------------
 getwd()
 
