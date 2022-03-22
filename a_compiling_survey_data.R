@@ -51,6 +51,14 @@
 
 
 
+
+
+
+# CLP - Verhoeven, Larkin, Newman 2020 ------------------------------------
+
+  #This section (CLP - ...) was not run here, but instead copied over from the
+  #CLP Project
+  
 # CLP - Brasch ------------------------------------------------------------
   
 #' "ps" (point scale) will be our dataset. Let's fill er' up!
@@ -634,7 +642,7 @@ names(ps[,which(as.vector(colSums(is.na(ps)) == nrow(ps)))])
 
 
 
-# progress checkpoint -----------------------------------------------------
+# CHECKPOINT  -----------------------------------------------------
 
 
 # save progress as a .csv file in output data folder  
@@ -645,7 +653,7 @@ names(ps[,which(as.vector(colSums(is.na(ps)) == nrow(ps)))])
 
 
 
-# add DOWs to CLP lakes ---------------------------------------------------
+# add DOWs to CLP proj lakes ---------------------------------------------------
 
 
 #' ## add the DOW ids to these lakes:
@@ -731,6 +739,7 @@ unique(ps$dowid)
 
 # new datasets ----------------------------------------
 
+#coerce to a tibble
 ps <- tbl_df(ps)
 ps[] <- lapply(ps[], factor)
 
@@ -1375,7 +1384,7 @@ nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
 
 
-# progress checkpoint -----------------------------------------------------
+# CHECKPOINT -----------------------------------------------------
 
 
 # save progress as a .csv file in output data folder  
@@ -1562,7 +1571,7 @@ ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)]
 
 
 
-# progress checkpoint -----------------------------------------------------
+# CHECKPOINT -----------------------------------------------------
 # save progress as a .csv file in output data folder  
 setwd("E:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")
 # write.csv(ps, file = "data/output/clp_2018dow_surveys.csv", row.names = F)    
@@ -1955,7 +1964,7 @@ nrow(unique(cbind(ps$datemv, ps$datasourcemv, ps$lknamemv)))
 
 
 
-# progress checkpoint -----------------------------------------------------
+# CHECKPOINT -----------------------------------------------------
 # save progress as a .csv file in output data folder  
 setwd("E:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")
 # write.csv(ps, file = "data/output/clp_2018dow_2019_surveys.csv", row.names = F)    
@@ -2256,7 +2265,7 @@ ps[lknamemv=="wilmes" , dowid := 82009000]
 ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)]
 sort(unique(ps[is.na(dowid) == T , .N , .(lknamemv, datasourcemv, dowid, datemv)][,lknamemv,]))
 
-# progress checkpoint -----------------------------------------------------
+# CHECKPOINT -----------------------------------------------------
 # save progress as a .csv file in output data folder  
 setwd("G:/My Drive/Documents/UMN/Grad School/Larkin Lab/R_projects/surveycollation")
 # write.csv(ps, file = "data/output/clp_2018dow_2019dow_surveys.csv", row.names = F)    
@@ -2290,7 +2299,7 @@ ps[] <- lapply(ps[], factor)
 ps <- ps[,colSums(is.na(ps))<nrow(ps)]
 
 
-# export old fieldnames ---------------------------------------------------
+# export old fieldnames to Excel ---------------------------------------------------
 
 
 #' # Old Variable Names
@@ -2380,7 +2389,7 @@ pst1 <- fk3$newfieldname[match(pst, fk3[,fieldname])]
 paste(pst1[345],names(ps[345]), sep= "---") # test one match
 
 
-# collapse duplicated columns ---------------------------------------------
+# cleaning and collapsing columns ---------------------------------------------
 
 
 
@@ -2416,6 +2425,10 @@ colnames(ps) <- pst2
 #' Define the new matches (pst are original names)!
 sort(paste(colnames(ps),pst, sep = "---"))
 
+
+# point.id ----------------------------------------------------------------
+
+
 #' Combine all rows with point.id_i (to develop the code for NA rm and collation of columns)  
 
 #' to pull the names w/o any numbers:
@@ -2432,7 +2445,11 @@ names(ps[,word(string = names(ps), start = -2, sep = "--")=="STA_NBR"]) # the na
 #' At this point we have a point id variable that contains many NAs (to be deleted) and multiple erroneous (also need to delete these)
 #' We also need to verify that there are no "#,#" or "#,etc" left in here.
 #' Finally, we need to do this unite and subsequent NA deletion for all of the other variables in our dataset. 
-#' 
+
+
+# unite like-named columns ------------------------------------------------
+
+
 #' A loop to unite all columns with the same name, then delete all of the NA's in em'(takes ~ 3 minutes to run)
 psb <- ps #save a copy of ps unedited
 
@@ -2488,8 +2505,7 @@ summary(ps$`STA_NBR--a`)
 colnames(ps) <- word(string = names(ps), start = -2, sep = "--")
 sort(names(ps))
 
-
-   # progress checkpoint -----------------------------------------------------
+# CHECKPOINT -----------------------------------------------------
 
 #' save progress as a .csv file in the output folder
 
@@ -2908,7 +2924,7 @@ unique(ps[is.na(ps$depth_unk) == F,c ("DEPTH_FT", "depth_m", "depth_unk")]) # so
 ps[ is.na(DEPTH_FT) == F , depth_unk := NA ,]
 ps[ is.na(DEPTH_FT) == F , depth_m := NA,]
 
-# roll all remaining depths in meters over into feet and drop the meters column form set
+# roll all remaining depths in meters over into feet and drop the meters column from set
 summary(ps[ is.na(DEPTH_FT) == T & is.na(depth_m) == F, depth_m ,])
 ps[ is.na(DEPTH_FT) == T & is.na(depth_m) == F, DEPTH_FT := 3.28084*depth_m ,]
 ps[ is.na(DEPTH_FT) == F , depth_m := NA,]
@@ -3074,7 +3090,7 @@ ps[,sample_taken:= NULL]
   
 
 
-# progress checkpoint -----------------------------------------------------
+# CHECKPOINT -----------------------------------------------------
 
 
  #' Save progress 
@@ -3123,7 +3139,7 @@ ps[,sample_taken:= NULL]
  
 
 
-   # progress checkpoint -----------------------------------------------------
+# CHECKPOINT -----------------------------------------------------
    
    
    #' Save progress 
@@ -3351,7 +3367,7 @@ ps[,sample_taken:= NULL]
    
    
    
-   # cursor catcher ----------------------------------------------------------
+# cursor catcher ----------------------------------------------------------
 
    
    
