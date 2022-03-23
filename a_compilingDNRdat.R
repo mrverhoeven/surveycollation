@@ -32,7 +32,7 @@
 #' # Load in DNR databases
 #' MN DNR has 3 primary db's with these data in them. First is shallow lakes. 
 #' We can get most of that from a 2018 Muthukrishnan Et al. data archive. There
-#' are also data collected by Fisheries--these were shared by Donna Perleberg. 
+#' are also data collected by Fisheries--these were shared by Donna Dustin. 
 #' Finally, data from the Lakes and Rivers or Lakes Habitat (a.k.a Perleberg 
 #' and Radomski) were acquired through a formal data request (which only turned
 #' up data collected before 2013).
