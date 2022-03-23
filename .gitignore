@@ -36,3 +36,8 @@ plotdatashinyEWMviz.csv
 Wes_Prob_DOWs.csv
 SABY_Prob_DOWs.csv
 *.RData*
+z_archive
+z_data
+z_figs
+z_htmls
+z_metadata_viz
