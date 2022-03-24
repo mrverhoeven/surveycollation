@@ -59,7 +59,7 @@ f_dowle3natozeros = function(DT, x) {
 # load in data -------------------------------------------------
 
   #observation level data
-  plants <- fread(input = "data/output/plant_surveys_mn.csv", drop = 1:2) #import, dropping the exported row numbers
+  plants <- fread(input = "z_data/output/plant_surveys_mn.csv", drop = 1:2) #import, dropping the exported row numbers
 
   
 # summarize whats there ---------------------------------------------------
